@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Minhas Tarefas{% endblock %}
+
+{% block content %}
+<style>
+    .add-task-form {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 150px 1fr auto;
+        gap: 15px;
+        align-items: end;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #333;
+    }
+
+    tr:hover {
+        background: #f8f9fa;
+    }
+
+    .task-date {
+        width: 120px;
+        white-space: nowrap;
+    }
+
+    .task-actions {
+        width: 150px;
+        white-space: nowrap;
+    }
+
+    .task-actions a,
+    .task-actions button {
+        margin-right: 5px;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .task-actions button {
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+
+    .empty-state h3 {
+        margin-bottom: 10px;
+        color: #666;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        table {
+            font-size: 14px;
+        }
+
+        .task-actions a,
+        .task-actions button {
+            display: block;
+            margin-bottom: 5px;
+        }
+    }
+</style>
+
+<div class="add-task-form">
+    <h3 style="margin-bottom: 15px;">Nova Tarefa</h3>
+    <form method="POST" action="{{ url_for('adicionar') }}">
+        <div class="form-row">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="data">Data</label>
+                <input type="date" id="data" name="data" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="descricao">Descrição</label>
+                <input type="text" id="descricao" name="descricao" placeholder="Digite a tarefa..." required>
+            </div>
+            <button type="submit" class="btn">Adicionar</button>
+        </div>
+    </form>
+</div>
+
+{% if tarefas %}
+<h3>Minhas Tarefas ({{ tarefas|length }})</h3>
+<table>
+    <thead>
+        <tr>
+            <th class="task-date">Data</th>
+            <th>Tarefa</th>
+            <th class="task-actions">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tarefa in tarefas %}
+        <tr>
+            <td class="task-date">{{ tarefa.data.strftime('%d/%m/%Y') }}</td>
+            <td>{{ tarefa.descricao }}</td>
+            <td class="task-actions">
+                <a href="{{ url_for('editar', id=tarefa.id) }}" class="btn" style="background: #3498db;">Editar</a>
+                <form method="POST" action="{{ url_for('deletar', id=tarefa.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja deletar esta tarefa?')">Deletar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    <h3>Nenhuma tarefa cadastrada</h3>
+    <p>Adicione sua primeira tarefa usando o formulário acima!</p>
+</div>
+{% endif %}
+{% endblock %}
