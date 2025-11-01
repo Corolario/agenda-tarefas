@@ -4,6 +4,8 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from dotenv import load_dotenv
 from datetime import datetime
 from models import db, User, Tarefa
+from collections import defaultdict
+import locale
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -40,7 +42,6 @@ def login():
 
         if user and user.check_password(password):
             login_user(user)
-            flash('Login realizado com sucesso!', 'success')
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('index'))
         else:
@@ -49,36 +50,14 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/registro', methods=['GET', 'POST'])
-def registro():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-
-        # Validações
-        if not username or not password:
-            flash('Por favor, preencha todos os campos.', 'danger')
-        elif password != confirm_password:
-            flash('As senhas não coincidem.', 'danger')
-        elif len(password) < 6:
-            flash('A senha deve ter no mínimo 6 caracteres.', 'danger')
-        elif User.query.filter_by(username=username).first():
-            flash('Este usuário já existe.', 'danger')
-        else:
-            # Criar novo usuário
-            user = User(username=username)
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
-
-            flash('Cadastro realizado com sucesso! Faça login.', 'success')
-            return redirect(url_for('login'))
-
-    return render_template('registro.html')
+# Rota de registro desabilitada por segurança
+# Para criar novos usuários, use o script create_user.py
+# @app.route('/registro', methods=['GET', 'POST'])
+# def registro():
+#     if current_user.is_authenticated:
+#         return redirect(url_for('index'))
+#     ...
+#     return render_template('registro.html')
 
 
 @app.route('/logout')
@@ -96,7 +75,34 @@ def logout():
 def index():
     # Buscar apenas tarefas do usuário logado
     tarefas = Tarefa.query.filter_by(user_id=current_user.id).order_by(Tarefa.data).all()
-    return render_template('index.html', tarefas=tarefas)
+
+    # Agrupar tarefas por mês/ano
+    tarefas_por_mes = defaultdict(list)
+    meses_ordem = []
+
+    # Nomes dos meses em português
+    meses_nomes = {
+        1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+        5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+        9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+    }
+
+    for tarefa in tarefas:
+        mes_ano = (tarefa.data.year, tarefa.data.month)
+        if mes_ano not in tarefas_por_mes:
+            meses_ordem.append(mes_ano)
+        tarefas_por_mes[mes_ano].append(tarefa)
+
+    # Criar lista formatada de meses com suas tarefas
+    tarefas_agrupadas = []
+    for ano, mes in meses_ordem:
+        mes_nome = f"{meses_nomes[mes]} de {ano}"
+        tarefas_agrupadas.append({
+            'mes_nome': mes_nome,
+            'tarefas': tarefas_por_mes[(ano, mes)]
+        })
+
+    return render_template('index.html', tarefas_agrupadas=tarefas_agrupadas, total_tarefas=len(tarefas))
 
 
 @app.route('/adicionar', methods=['POST'])

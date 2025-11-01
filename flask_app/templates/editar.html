@@ -37,7 +37,10 @@
         <div class="button-group">
             <button type="submit" class="btn">Salvar</button>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
+            <button type="button" class="btn btn-danger" onclick="if(confirm('Tem certeza que deseja deletar esta tarefa?')) document.getElementById('deleteForm').submit()">Deletar</button>
         </div>
     </form>
+
+    <form id="deleteForm" method="POST" action="{{ url_for('deletar', id=tarefa.id) }}" style="display: none;"></form>
 </div>
 {% endblock %}
