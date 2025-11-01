@@ -19,5 +19,9 @@ RUN mkdir -p /app/data
 # Expor porta
 EXPOSE 5000
 
+# Criar script de inicialização
+RUN echo '#!/bin/bash\npython init_db.py\nexec gunicorn --bind 0.0.0.0:5000 --workers 4 --timeout 120 app:app' > /app/start.sh && \
+    chmod +x /app/start.sh
+
 # Comando para iniciar a aplicação
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "app:app"]
+CMD ["/app/start.sh"]
