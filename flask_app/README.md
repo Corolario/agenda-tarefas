@@ -81,15 +81,6 @@ git clone https://seu-repositorio.git
 cd flask_app
 ```
 
-**Opção B: Via SCP (do seu computador local)**
-```bash
-# Do seu computador local
-scp -r flask_app/ usuario@ip-do-vps:/home/usuario/
-```
-
-**Opção C: Via SFTP/FTP**
-- Use FileZilla ou WinSCP para transferir a pasta `flask_app/`
-
 ### Passo 3: Configurar variáveis de ambiente
 
 ```bash
