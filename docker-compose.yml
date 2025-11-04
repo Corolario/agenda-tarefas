@@ -10,7 +10,7 @@ services:
       - ./data:/app/data
     environment:
       - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
-      - DATABASE_URL=sqlite:///data/tarefas.db
+      - DATABASE_URL=sqlite:////app/data/tarefas.db
       - FLASK_ENV=production
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/login"]
