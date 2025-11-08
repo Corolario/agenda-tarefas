@@ -13,6 +13,33 @@
 <style>
     .btn-add-task { background: #27ae60; font-size: 14px; padding: 10px 20px; }
     .btn-add-task:hover { background: #229954; }
+    .filter-section {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .filter-section label {
+        font-weight: bold;
+        color: #333;
+        margin: 0;
+    }
+    .filter-section select {
+        flex: 1;
+        max-width: 300px;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .filter-section button {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
     .month-section { margin-bottom: 25px; }
     .month-title { font-size: 17px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #667eea; }
     .month-count { font-size: 14px; color: #666; font-weight: normal; }
@@ -56,6 +83,24 @@
         </div>
     </div>
 </div>
+
+<!-- Filtro de Usuários -->
+{% if user_groups and members_list %}
+<div class="filter-section">
+    <label for="user_filter">Filtrar por usuário:</label>
+    <select id="user_filter" onchange="filterByUser()">
+        <option value="">Todos os usuários</option>
+        {% for member_id, member_name in members_list %}
+        <option value="{{ member_id }}" {% if selected_user_id == member_id %}selected{% endif %}>
+            {{ member_name }}{% if member_id == current_user.id %} (Você){% endif %}
+        </option>
+        {% endfor %}
+    </select>
+    {% if selected_user_id %}
+    <a href="{{ url_for('index') }}" class="btn" style="background: #95a5a6;">Limpar Filtro</a>
+    {% endif %}
+</div>
+{% endif %}
 
 {% if user_groups %}
     {% if tarefas_agrupadas %}
@@ -114,6 +159,15 @@ function openModal() {
 
 function closeModal() {
     document.getElementById('taskModal').style.display = 'none';
+}
+
+function filterByUser() {
+    const userId = document.getElementById('user_filter').value;
+    if (userId) {
+        window.location.href = '/?user_id=' + userId;
+    } else {
+        window.location.href = '/';
+    }
 }
 
 // Fechar modal ao clicar fora dele
