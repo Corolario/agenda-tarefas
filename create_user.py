@@ -40,15 +40,24 @@ def create_user():
             continue
         break
 
+    # Solicitar se é administrador
+    while True:
+        is_admin_input = input("Este usuário é administrador? (s/n): ").strip().lower()
+        if is_admin_input in ['s', 'n']:
+            is_admin = is_admin_input == 's'
+            break
+        print("❌ Por favor, digite 's' para sim ou 'n' para não.")
+
     # Criar usuário
     try:
         with app.app_context():
-            user = User(username=username)
+            user = User(username=username, is_admin=is_admin)
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
 
-        print(f"\n✅ Usuário '{username}' criado com sucesso!\n")
+        user_type = "administrador" if is_admin else "comum"
+        print(f"\n✅ Usuário '{username}' ({user_type}) criado com sucesso!\n")
         return True
 
     except Exception as e:
