@@ -86,19 +86,20 @@ python create_user.py
 - **Usuário Comum**: Só pode deletar suas próprias tarefas
 - **Administrador**: Pode deletar qualquer tarefa de seus grupos
 
-## Migração do Banco de Dados
+## Inicialização do Sistema
 
-Se você já tinha dados no sistema antigo:
+Na primeira execução, a aplicação criará automaticamente o banco de dados com todas as tabelas necessárias:
 
 ```bash
-# Fazer backup manualmente (opcional)
-cp tarefas.db tarefas.db.manual-backup
+# Instalar dependências
+pip install -r requirements.txt
 
-# Executar migração
-python migrate_db.py
+# Iniciar aplicação (cria o banco automaticamente)
+python app.py
+
+# Em outro terminal, criar o primeiro usuário administrador
+python create_user.py
 ```
-
-**ATENÇÃO**: A migração irá **recriar o banco de dados**, removendo todos os dados existentes. Um backup será criado automaticamente em `tarefas.db.backup`.
 
 ## Estrutura do Banco de Dados
 
@@ -185,17 +186,14 @@ Acessível apenas para administradores:
 ## Comandos Úteis
 
 ```bash
-# Iniciar aplicação
+# Instalar dependências
+pip install -r requirements.txt
+
+# Iniciar aplicação (cria banco automaticamente na primeira execução)
 python app.py
 
 # Criar usuário administrador
 python create_user.py
-
-# Migrar banco de dados
-python migrate_db.py
-
-# Instalar dependências
-pip install -r requirements.txt
 ```
 
 ## Arquitetura
