@@ -4,7 +4,6 @@ Script para inicializar o banco de dados
 Execute: python init_db.py
 """
 
-import os
 import sys
 from app import app, db
 

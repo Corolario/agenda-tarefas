@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from datetime import datetime
 from models import db, User, Tarefa
 from collections import defaultdict
-import locale
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -48,16 +47,6 @@ def login():
             flash('Usuário ou senha incorretos.', 'danger')
 
     return render_template('login.html')
-
-
-# Rota de registro desabilitada por segurança
-# Para criar novos usuários, use o script create_user.py
-# @app.route('/registro', methods=['GET', 'POST'])
-# def registro():
-#     if current_user.is_authenticated:
-#         return redirect(url_for('index'))
-#     ...
-#     return render_template('registro.html')
 
 
 @app.route('/logout')
