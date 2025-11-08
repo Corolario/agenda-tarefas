@@ -349,7 +349,7 @@ def admin_group_members(id):
 
     # Listar membros atuais e usuários disponíveis
     current_members = group.members.all()
-    all_users = User.query.filter_by(is_admin=False).all()
+    all_users = User.query.all()  # Incluir todos os usuários, inclusive admins
     available_users = [u for u in all_users if u not in current_members]
 
     return render_template('admin/group_members.html', group=group,
