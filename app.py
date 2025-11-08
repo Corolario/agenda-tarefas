@@ -3,7 +3,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from dotenv import load_dotenv
 from datetime import datetime
-from models import db, User, Tarefa
+from functools import wraps
+from models import db, User, Tarefa, TaskGroup, user_taskgroup
 from collections import defaultdict
 
 # Carregar variáveis de ambiente
@@ -24,6 +25,18 @@ login_manager.login_message = 'Por favor, faça login para acessar esta página.
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
+# ============= DECORADORES =============
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Você não tem permissão para acessar esta página.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 # ============= ROTAS DE AUTENTICAÇÃO =============
@@ -62,8 +75,18 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    # Buscar apenas tarefas do usuário logado
-    tarefas = Tarefa.query.filter_by(user_id=current_user.id).order_by(Tarefa.data).all()
+    # Buscar grupos do usuário
+    user_groups = current_user.task_groups
+
+    # Se o usuário não pertence a nenhum grupo, retornar vazio
+    if not user_groups:
+        return render_template('index.html', tarefas_agrupadas=[], total_tarefas=0, user_groups=user_groups)
+
+    # Buscar IDs dos grupos do usuário
+    group_ids = [group.id for group in user_groups]
+
+    # Buscar todas as tarefas dos grupos que o usuário pertence
+    tarefas = Tarefa.query.filter(Tarefa.task_group_id.in_(group_ids)).order_by(Tarefa.data).all()
 
     # Agrupar tarefas por mês/ano
     tarefas_por_mes = defaultdict(list)
@@ -91,7 +114,7 @@ def index():
             'tarefas': tarefas_por_mes[(ano, mes)]
         })
 
-    return render_template('index.html', tarefas_agrupadas=tarefas_agrupadas, total_tarefas=len(tarefas))
+    return render_template('index.html', tarefas_agrupadas=tarefas_agrupadas, total_tarefas=len(tarefas), user_groups=user_groups)
 
 
 @app.route('/adicionar', methods=['POST'])
@@ -99,9 +122,16 @@ def index():
 def adicionar():
     data_str = request.form.get('data')
     descricao = request.form.get('descricao')
+    task_group_id = request.form.get('task_group_id')
 
-    if not data_str or not descricao:
+    if not data_str or not descricao or not task_group_id:
         flash('Por favor, preencha todos os campos.', 'danger')
+        return redirect(url_for('index'))
+
+    # Verificar se o usuário pertence ao grupo
+    task_group = TaskGroup.query.get(task_group_id)
+    if not task_group or task_group not in current_user.task_groups:
+        flash('Você não pertence a este grupo de tarefas.', 'danger')
         return redirect(url_for('index'))
 
     try:
@@ -113,7 +143,8 @@ def adicionar():
     tarefa = Tarefa(
         data=data,
         descricao=descricao,
-        user_id=current_user.id
+        user_id=current_user.id,
+        task_group_id=task_group_id
     )
     db.session.add(tarefa)
     db.session.commit()
@@ -127,8 +158,15 @@ def adicionar():
 def editar(id):
     tarefa = Tarefa.query.get_or_404(id)
 
-    # Verificar se a tarefa pertence ao usuário
-    if tarefa.user_id != current_user.id:
+    # Verificar permissões
+    # Admin pode editar qualquer tarefa do grupo
+    # Usuário comum só pode editar suas próprias tarefas
+    task_group = tarefa.task_group
+    if task_group not in current_user.task_groups:
+        flash('Você não tem permissão para editar esta tarefa.', 'danger')
+        return redirect(url_for('index'))
+
+    if not current_user.is_admin and tarefa.user_id != current_user.id:
         flash('Você não tem permissão para editar esta tarefa.', 'danger')
         return redirect(url_for('index'))
 
@@ -156,8 +194,15 @@ def editar(id):
 def deletar(id):
     tarefa = Tarefa.query.get_or_404(id)
 
-    # Verificar se a tarefa pertence ao usuário
-    if tarefa.user_id != current_user.id:
+    # Verificar permissões
+    # Admin pode deletar qualquer tarefa do grupo
+    # Usuário comum só pode deletar suas próprias tarefas
+    task_group = tarefa.task_group
+    if task_group not in current_user.task_groups:
+        flash('Você não tem permissão para deletar esta tarefa.', 'danger')
+        return redirect(url_for('index'))
+
+    if not current_user.is_admin and tarefa.user_id != current_user.id:
         flash('Você não tem permissão para deletar esta tarefa.', 'danger')
         return redirect(url_for('index'))
 
@@ -165,6 +210,183 @@ def deletar(id):
     db.session.commit()
     flash('Tarefa deletada com sucesso!', 'success')
     return redirect(url_for('index'))
+
+
+# ============= ROTAS DE ADMINISTRAÇÃO =============
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    """Dashboard de administração"""
+    groups = TaskGroup.query.filter_by(admin_id=current_user.id).all()
+    users = User.query.filter_by(is_admin=False).all()
+    return render_template('admin/dashboard.html', groups=groups, users=users)
+
+
+@app.route('/admin/groups')
+@login_required
+@admin_required
+def admin_groups():
+    """Listar grupos de tarefas"""
+    groups = TaskGroup.query.filter_by(admin_id=current_user.id).all()
+    return render_template('admin/groups.html', groups=groups)
+
+
+@app.route('/admin/groups/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_create_group():
+    """Criar novo grupo de tarefas"""
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+
+        if not name:
+            flash('Por favor, preencha o nome do grupo.', 'danger')
+        else:
+            group = TaskGroup(
+                name=name,
+                description=description,
+                admin_id=current_user.id
+            )
+            db.session.add(group)
+            db.session.commit()
+            flash(f'Grupo "{name}" criado com sucesso!', 'success')
+            return redirect(url_for('admin_groups'))
+
+    return render_template('admin/create_group.html')
+
+
+@app.route('/admin/groups/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_edit_group(id):
+    """Editar grupo de tarefas"""
+    group = TaskGroup.query.get_or_404(id)
+
+    # Verificar se o grupo pertence ao admin
+    if group.admin_id != current_user.id:
+        flash('Você não tem permissão para editar este grupo.', 'danger')
+        return redirect(url_for('admin_groups'))
+
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+
+        if not name:
+            flash('Por favor, preencha o nome do grupo.', 'danger')
+        else:
+            group.name = name
+            group.description = description
+            db.session.commit()
+            flash(f'Grupo "{name}" atualizado com sucesso!', 'success')
+            return redirect(url_for('admin_groups'))
+
+    return render_template('admin/edit_group.html', group=group)
+
+
+@app.route('/admin/groups/<int:id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_group(id):
+    """Deletar grupo de tarefas"""
+    group = TaskGroup.query.get_or_404(id)
+
+    # Verificar se o grupo pertence ao admin
+    if group.admin_id != current_user.id:
+        flash('Você não tem permissão para deletar este grupo.', 'danger')
+        return redirect(url_for('admin_groups'))
+
+    group_name = group.name
+    db.session.delete(group)
+    db.session.commit()
+    flash(f'Grupo "{group_name}" deletado com sucesso!', 'success')
+    return redirect(url_for('admin_groups'))
+
+
+@app.route('/admin/groups/<int:id>/members', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_group_members(id):
+    """Gerenciar membros do grupo"""
+    group = TaskGroup.query.get_or_404(id)
+
+    # Verificar se o grupo pertence ao admin
+    if group.admin_id != current_user.id:
+        flash('Você não tem permissão para gerenciar este grupo.', 'danger')
+        return redirect(url_for('admin_groups'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        user_id = request.form.get('user_id')
+
+        if not user_id:
+            flash('Usuário não especificado.', 'danger')
+            return redirect(url_for('admin_group_members', id=id))
+
+        user = User.query.get(user_id)
+        if not user:
+            flash('Usuário não encontrado.', 'danger')
+            return redirect(url_for('admin_group_members', id=id))
+
+        if action == 'add':
+            if user not in group.members.all():
+                group.members.append(user)
+                db.session.commit()
+                flash(f'Usuário "{user.username}" adicionado ao grupo.', 'success')
+            else:
+                flash(f'Usuário "{user.username}" já está no grupo.', 'info')
+        elif action == 'remove':
+            if user in group.members.all():
+                group.members.remove(user)
+                db.session.commit()
+                flash(f'Usuário "{user.username}" removido do grupo.', 'success')
+            else:
+                flash(f'Usuário "{user.username}" não está no grupo.', 'info')
+
+        return redirect(url_for('admin_group_members', id=id))
+
+    # Listar membros atuais e usuários disponíveis
+    current_members = group.members.all()
+    all_users = User.query.all()  # Incluir todos os usuários, inclusive admins
+    available_users = [u for u in all_users if u not in current_members]
+
+    return render_template('admin/group_members.html', group=group,
+                         current_members=current_members,
+                         available_users=available_users)
+
+
+@app.route('/admin/users/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_create_user():
+    """Criar novo usuário comum"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not username or not password:
+            flash('Por favor, preencha todos os campos.', 'danger')
+        elif len(password) < 6:
+            flash('A senha deve ter no mínimo 6 caracteres.', 'danger')
+        elif password != confirm_password:
+            flash('As senhas não coincidem.', 'danger')
+        else:
+            # Verificar se usuário já existe
+            existing_user = User.query.filter_by(username=username).first()
+            if existing_user:
+                flash(f'O usuário "{username}" já existe.', 'danger')
+            else:
+                user = User(username=username, is_admin=False)
+                user.set_password(password)
+                db.session.add(user)
+                db.session.commit()
+                flash(f'Usuário "{username}" criado com sucesso!', 'success')
+                return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin/create_user.html')
 
 
 # ============= INICIALIZAÇÃO =============

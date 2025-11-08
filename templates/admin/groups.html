@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Grupos de Tarefas{% endblock %}
+
+{% block page_title %}Grupos de Tarefas{% endblock %}
+
+{% block header_buttons %}
+<a href="{{ url_for('admin_create_group') }}" class="btn" style="background: #27ae60; margin-right: 10px;">+ Novo Grupo</a>
+<a href="{{ url_for('admin_dashboard') }}" class="btn" style="background: #95a5a6;">Voltar</a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .group-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .group-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .group-name {
+        font-size: 18px;
+        font-weight: bold;
+        color: #667eea;
+        margin: 0;
+    }
+    .group-description {
+        color: #666;
+        margin-bottom: 15px;
+    }
+    .group-stats {
+        font-size: 14px;
+        color: #999;
+        margin-bottom: 15px;
+    }
+    .group-actions {
+        display: flex;
+        gap: 10px;
+    }
+</style>
+
+{% if groups %}
+    {% for group in groups %}
+    <div class="group-card">
+        <div class="group-header">
+            <h3 class="group-name">{{ group.name }}</h3>
+        </div>
+        {% if group.description %}
+        <p class="group-description">{{ group.description }}</p>
+        {% endif %}
+        <div class="group-stats">
+            <strong>Membros:</strong> {{ group.members.count() }} |
+            <strong>Tarefas:</strong> {{ group.tarefas|length }} |
+            <strong>Criado em:</strong> {{ group.created_at.strftime('%d/%m/%Y') }}
+        </div>
+        <div class="group-actions">
+            <a href="{{ url_for('admin_group_members', id=group.id) }}" class="btn" style="background: #3498db; font-size: 13px;">Gerenciar Membros</a>
+            <a href="{{ url_for('admin_edit_group', id=group.id) }}" class="btn" style="background: #f39c12; font-size: 13px;">Editar</a>
+            <form method="POST" action="{{ url_for('admin_delete_group', id=group.id) }}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja deletar este grupo? Todas as tarefas associadas serão perdidas!');">
+                <button type="submit" class="btn" style="background: #e74c3c; font-size: 13px;">Deletar</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div style="text-align: center; padding: 60px 20px; color: #999;">
+    <h3>Nenhum grupo criado</h3>
+    <p>Crie seu primeiro grupo clicando no botão "Novo Grupo"!</p>
+</div>
+{% endif %}
+
+{% endblock %}
