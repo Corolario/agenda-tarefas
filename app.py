@@ -80,13 +80,30 @@ def index():
 
     # Se o usuário não pertence a nenhum grupo, retornar vazio
     if not user_groups:
-        return render_template('index.html', tarefas_agrupadas=[], total_tarefas=0, user_groups=user_groups)
+        return render_template('index.html', tarefas_agrupadas=[], total_tarefas=0, user_groups=user_groups,
+                             members_list=[], selected_user_id=None)
 
     # Buscar IDs dos grupos do usuário
     group_ids = [group.id for group in user_groups]
 
+    # Obter filtro de usuário da query string
+    selected_user_id = request.args.get('user_id', type=int)
+
     # Buscar todas as tarefas dos grupos que o usuário pertence
-    tarefas = Tarefa.query.filter(Tarefa.task_group_id.in_(group_ids)).order_by(Tarefa.data).all()
+    query = Tarefa.query.filter(Tarefa.task_group_id.in_(group_ids))
+
+    # Aplicar filtro de usuário se selecionado
+    if selected_user_id:
+        query = query.filter(Tarefa.user_id == selected_user_id)
+
+    tarefas = query.order_by(Tarefa.data).all()
+
+    # Buscar todos os membros dos grupos para o filtro
+    members_set = set()
+    for group in user_groups:
+        for member in group.members.all():
+            members_set.add((member.id, member.username))
+    members_list = sorted(list(members_set), key=lambda x: x[1])  # Ordenar por nome
 
     # Agrupar tarefas por mês/ano
     tarefas_por_mes = defaultdict(list)
@@ -114,7 +131,8 @@ def index():
             'tarefas': tarefas_por_mes[(ano, mes)]
         })
 
-    return render_template('index.html', tarefas_agrupadas=tarefas_agrupadas, total_tarefas=len(tarefas), user_groups=user_groups)
+    return render_template('index.html', tarefas_agrupadas=tarefas_agrupadas, total_tarefas=len(tarefas),
+                         user_groups=user_groups, members_list=members_list, selected_user_id=selected_user_id)
 
 
 @app.route('/adicionar', methods=['POST'])
