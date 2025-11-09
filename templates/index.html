@@ -3,10 +3,9 @@
 {% block title %}Minhas Tarefas{% endblock %}
 
 {% block header_buttons %}
-{% if current_user.is_admin %}
-<a href="{{ url_for('admin_dashboard') }}" class="btn" style="background: #9b59b6; margin-right: 10px;">Administração</a>
-{% endif %}
-<button onclick="openModal()" class="btn btn-add-task" style="margin-right: 10px;">+ Nova Tarefa</button>
+    {% if current_user.is_admin %}
+        <a href="{{ url_for('admin_dashboard') }}" class="btn" style="background: #9b59b6; margin-right: 10px;">Administração</a>
+    {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -84,11 +83,26 @@
     </div>
 </div>
 
-<!-- Filtro de Usuários -->
-{% if user_groups and members_list %}
+<!-- Filtros -->
+{% if user_groups %}
 <div class="filter-section">
-    <label for="user_filter">Filtrar por usuário:</label>
-    <select id="user_filter" onchange="filterByUser()">
+    <!-- Filtro de Grupo -->
+    {% if user_groups|length > 1 %}
+    <label for="group_filter">Grupo:</label>
+    <select id="group_filter" onchange="applyFilters()">
+        <option value="">Todos os grupos</option>
+        {% for group in user_groups %}
+        <option value="{{ group.id }}" {% if selected_group_id == group.id %}selected{% endif %}>
+            {{ group.name }}
+        </option>
+        {% endfor %}
+    </select>
+    {% endif %}
+
+    <!-- Filtro de Usuário -->
+    {% if members_list %}
+    <label for="user_filter">Usuário:</label>
+    <select id="user_filter" onchange="applyFilters()">
         <option value="">Todos os usuários</option>
         {% for member_id, member_name in members_list %}
         <option value="{{ member_id }}" {% if selected_user_id == member_id %}selected{% endif %}>
@@ -96,9 +110,12 @@
         </option>
         {% endfor %}
     </select>
-    {% if selected_user_id %}
-    <a href="{{ url_for('index') }}" class="btn" style="background: #95a5a6;">Limpar Filtro</a>
     {% endif %}
+
+    {% if selected_user_id or selected_group_id %}
+    <a href="{{ url_for('index') }}" class="btn" style="background: #95a5a6;">Limpar Filtros</a>
+    {% endif %}
+    <button onclick="openModal()" class="btn btn-add-task" style="margin-right: 10px;">+ Nova Tarefa</button>
 </div>
 {% endif %}
 
@@ -161,13 +178,24 @@ function closeModal() {
     document.getElementById('taskModal').style.display = 'none';
 }
 
-function filterByUser() {
-    const userId = document.getElementById('user_filter').value;
-    if (userId) {
-        window.location.href = '/?user_id=' + userId;
-    } else {
-        window.location.href = '/';
+function applyFilters() {
+    const groupSelect = document.getElementById('group_filter');
+    const userSelect = document.getElementById('user_filter');
+
+    const groupId = groupSelect ? groupSelect.value : '';
+    const userId = userSelect ? userSelect.value : '';
+
+    const params = new URLSearchParams();
+
+    if (groupId) {
+        params.append('group_id', groupId);
     }
+    if (userId) {
+        params.append('user_id', userId);
+    }
+
+    const queryString = params.toString();
+    window.location.href = queryString ? '/?' + queryString : '/';
 }
 
 // Fechar modal ao clicar fora dele

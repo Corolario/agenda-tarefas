@@ -81,16 +81,23 @@ def index():
     # Se o usuário não pertence a nenhum grupo, retornar vazio
     if not user_groups:
         return render_template('index.html', tarefas_agrupadas=[], total_tarefas=0, user_groups=user_groups,
-                             members_list=[], selected_user_id=None)
+                             members_list=[], selected_user_id=None, selected_group_id=None)
 
     # Buscar IDs dos grupos do usuário
     group_ids = [group.id for group in user_groups]
 
-    # Obter filtro de usuário da query string
+    # Obter filtros da query string
     selected_user_id = request.args.get('user_id', type=int)
+    selected_group_id = request.args.get('group_id', type=int)
 
     # Buscar todas as tarefas dos grupos que o usuário pertence
     query = Tarefa.query.filter(Tarefa.task_group_id.in_(group_ids))
+
+    # Aplicar filtro de grupo se selecionado
+    if selected_group_id:
+        # Verificar se o usuário pertence a este grupo
+        if selected_group_id in group_ids:
+            query = query.filter(Tarefa.task_group_id == selected_group_id)
 
     # Aplicar filtro de usuário se selecionado
     if selected_user_id:
@@ -100,9 +107,17 @@ def index():
 
     # Buscar todos os membros dos grupos para o filtro
     members_set = set()
-    for group in user_groups:
-        for member in group.members.all():
-            members_set.add((member.id, member.username))
+    if selected_group_id:
+        # Se um grupo está selecionado, mostrar apenas membros daquele grupo
+        selected_group = TaskGroup.query.get(selected_group_id)
+        if selected_group:
+            for member in selected_group.members.all():
+                members_set.add((member.id, member.username))
+    else:
+        # Mostrar todos os membros de todos os grupos do usuário
+        for group in user_groups:
+            for member in group.members.all():
+                members_set.add((member.id, member.username))
     members_list = sorted(list(members_set), key=lambda x: x[1])  # Ordenar por nome
 
     # Agrupar tarefas por mês/ano
@@ -132,7 +147,8 @@ def index():
         })
 
     return render_template('index.html', tarefas_agrupadas=tarefas_agrupadas, total_tarefas=len(tarefas),
-                         user_groups=user_groups, members_list=members_list, selected_user_id=selected_user_id)
+                         user_groups=user_groups, members_list=members_list,
+                         selected_user_id=selected_user_id, selected_group_id=selected_group_id)
 
 
 @app.route('/adicionar', methods=['POST'])
