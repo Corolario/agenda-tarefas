@@ -258,15 +258,6 @@ def admin_dashboard():
     return render_template('admin/dashboard.html', groups=groups, users=users)
 
 
-@app.route('/admin/groups')
-@login_required
-@admin_required
-def admin_groups():
-    """Listar grupos de tarefas"""
-    groups = TaskGroup.query.filter_by(admin_id=current_user.id).all()
-    return render_template('admin/groups.html', groups=groups)
-
-
 @app.route('/admin/groups/create', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -287,7 +278,7 @@ def admin_create_group():
             db.session.add(group)
             db.session.commit()
             flash(f'Grupo "{name}" criado com sucesso!', 'success')
-            return redirect(url_for('admin_groups'))
+            return redirect(url_for('admin_dashboard'))
 
     return render_template('admin/create_group.html')
 
@@ -302,7 +293,7 @@ def admin_edit_group(id):
     # Verificar se o grupo pertence ao admin
     if group.admin_id != current_user.id:
         flash('Você não tem permissão para editar este grupo.', 'danger')
-        return redirect(url_for('admin_groups'))
+        return redirect(url_for('admin_dashboard'))
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -315,7 +306,7 @@ def admin_edit_group(id):
             group.description = description
             db.session.commit()
             flash(f'Grupo "{name}" atualizado com sucesso!', 'success')
-            return redirect(url_for('admin_groups'))
+            return redirect(url_for('admin_dashboard'))
 
     return render_template('admin/edit_group.html', group=group)
 
@@ -330,13 +321,13 @@ def admin_delete_group(id):
     # Verificar se o grupo pertence ao admin
     if group.admin_id != current_user.id:
         flash('Você não tem permissão para deletar este grupo.', 'danger')
-        return redirect(url_for('admin_groups'))
+        return redirect(url_for('admin_dashboard'))
 
     group_name = group.name
     db.session.delete(group)
     db.session.commit()
     flash(f'Grupo "{group_name}" deletado com sucesso!', 'success')
-    return redirect(url_for('admin_groups'))
+    return redirect(url_for('admin_dashboard'))
 
 
 @app.route('/admin/groups/<int:id>/members', methods=['GET', 'POST'])
@@ -349,7 +340,7 @@ def admin_group_members(id):
     # Verificar se o grupo pertence ao admin
     if group.admin_id != current_user.id:
         flash('Você não tem permissão para gerenciar este grupo.', 'danger')
-        return redirect(url_for('admin_groups'))
+        return redirect(url_for('admin_dashboard'))
 
     if request.method == 'POST':
         action = request.form.get('action')

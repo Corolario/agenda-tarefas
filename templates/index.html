@@ -4,9 +4,8 @@
 
 {% block header_buttons %}
 {% if current_user.is_admin %}
-<a href="{{ url_for('admin_dashboard') }}" class="btn" style="background: #9b59b6; margin-right: 10px;">Administração</a>
+<a href="{{ url_for('admin_dashboard') }}" class="btn" style="background: #9b59b6;">Administração</a>
 {% endif %}
-<button onclick="openModal()" class="btn btn-add-task" style="margin-right: 10px;">+ Nova Tarefa</button>
 {% endblock %}
 
 {% block content %}
@@ -116,6 +115,12 @@
     {% if selected_user_id or selected_group_id %}
     <a href="{{ url_for('index') }}" class="btn" style="background: #95a5a6;">Limpar Filtros</a>
     {% endif %}
+
+    <button onclick="openModal()" class="btn btn-add-task" style="margin-left: auto;">+ Nova Tarefa</button>
+</div>
+{% else %}
+<div style="margin-bottom: 20px;">
+    <button onclick="openModal()" class="btn btn-add-task">+ Nova Tarefa</button>
 </div>
 {% endif %}
 
