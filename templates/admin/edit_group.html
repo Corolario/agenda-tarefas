@@ -39,6 +39,17 @@
         min-height: 100px;
         resize: vertical;
     }
+    .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    .button-group button,
+    .button-group .btn {
+        flex: 1;
+        font-size: 16px;
+        padding: 12px;
+    }
 </style>
 
 <div class="form-container">
@@ -53,8 +64,22 @@
             <textarea id="description" name="description">{{ group.description or '' }}</textarea>
         </div>
 
-        <button type="submit" class="btn" style="width: 100%; background: #f39c12; font-size: 16px;">Salvar Alterações</button>
+        <div class="button-group">
+            <button type="submit" class="btn" style="background: #f39c12;">Salvar Alterações</button>
+            <button type="button" class="btn" style="background: #e74c3c;" onclick="confirmDelete()">Deletar Grupo</button>
+        </div>
+    </form>
+
+    <form id="deleteForm" method="POST" action="{{ url_for('admin_delete_group', id=group.id) }}" style="display: none;">
     </form>
 </div>
+
+<script>
+function confirmDelete() {
+    if (confirm('Tem certeza que deseja deletar este grupo? Todas as tarefas associadas serão perdidas!')) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+</script>
 
 {% endblock %}
