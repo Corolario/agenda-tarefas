@@ -24,10 +24,22 @@
         border-bottom: 2px solid #667eea;
         padding-bottom: 10px;
     }
-    .action-buttons {
+    .section-header {
         display: flex;
-        gap: 10px;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 15px;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 10px;
+    }
+    .section-header h3 {
+        margin: 0;
+        border: none;
+        padding: 0;
+    }
+    .section-header .btn {
+        padding: 6px 16px;
+        font-size: 13px;
     }
     table {
         width: 100%;
@@ -49,8 +61,8 @@
 </style>
 
 <div class="admin-section">
-    <h3>Gerenciar Grupos de Tarefas</h3>
-    <div class="action-buttons">
+    <div class="section-header">
+        <h3>Gerenciar Grupos de Tarefas</h3>
         <a href="{{ url_for('admin_create_group') }}" class="btn" style="background: #27ae60;">+ Novo Grupo</a>
     </div>
 
@@ -88,8 +100,8 @@
 </div>
 
 <div class="admin-section">
-    <h3>Gerenciar Usuários</h3>
-    <div class="action-buttons">
+    <div class="section-header">
+        <h3>Gerenciar Usuários</h3>
         <a href="{{ url_for('admin_create_user') }}" class="btn" style="background: #27ae60;">+ Novo Usuário</a>
     </div>
 
