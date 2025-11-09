@@ -50,15 +50,16 @@ python create_user.py
 
 #### Criar Grupo
 1. Login como administrador
-2. Acesse "Administração" → "Gerenciar Grupos de Tarefas"
-3. Clique em "+ Novo Grupo"
+2. Acesse "Administração" no header
+3. Na seção "Gerenciar Grupos de Tarefas", clique em "+ Novo Grupo"
 4. Preencha nome e descrição (opcional)
 5. Clique em "Criar Grupo"
 
 #### Adicionar Membros ao Grupo
-1. Na lista de grupos, clique em "Gerenciar Membros"
-2. Selecione um usuário no dropdown
-3. Clique em "Adicionar"
+1. No painel de administração, na tabela de grupos
+2. Clique em "Gerenciar Membros" do grupo desejado
+3. Selecione um usuário no dropdown
+4. Clique em "Adicionar"
 
 #### Remover Membro do Grupo
 1. Na página de membros do grupo
@@ -154,12 +155,35 @@ python create_user.py
 
 ## Interface de Administração
 
-Acessível apenas para administradores:
+Acessível apenas para administradores através do botão "Administração" no header.
 
-- **Dashboard**: Visão geral de grupos e usuários
-- **Grupos de Tarefas**: Lista, cria, edita e deleta grupos
-- **Membros do Grupo**: Adiciona e remove usuários dos grupos
-- **Criar Usuário**: Cria novos usuários comuns
+### Dashboard (/admin)
+
+**Seção: Gerenciar Grupos de Tarefas**
+- Tabela com todos os grupos do administrador
+- Colunas: Nome, Membros (quantidade), Tarefas (quantidade), Data de criação
+- Ações por grupo: Gerenciar Membros, Editar
+- Botão "+ Novo Grupo" no topo da seção
+
+**Seção: Gerenciar Usuários**
+- Tabela com todos os usuários comuns
+- Colunas: Nome de usuário, Data de criação
+- Botão "+ Novo Usuário" no topo da seção
+
+### Criar/Editar Grupo
+- Formulário com campos: Nome (obrigatório), Descrição (opcional)
+- Ao editar: Botões "Salvar Alterações" e "Deletar Grupo" lado a lado
+- Confirmação antes de deletar
+
+### Gerenciar Membros
+- Lista de membros atuais com botão "Remover"
+- Dropdown para adicionar novos membros
+- Inclui administradores na lista (admins podem ser membros)
+
+### Criar Usuário
+- Formulário: Nome de usuário, Senha, Confirmar senha
+- Cria apenas usuários comuns (is_admin=False)
+- Administradores só podem ser criados via script create_user.py
 
 ## Segurança
 
@@ -205,15 +229,22 @@ python create_user.py
 - `user_taskgroup`: Tabela associativa
 
 ### Rotas Principais
-- `/`: Lista de tarefas
-- `/admin`: Dashboard de administração
-- `/admin/groups`: Gerenciar grupos
-- `/admin/users/create`: Criar usuários
+- `/`: Lista de tarefas com filtros por grupo e usuário
+- `/adicionar`: Criar nova tarefa
+- `/editar/<id>`: Editar tarefa
+- `/deletar/<id>`: Deletar tarefa
+- `/admin`: Dashboard de administração (grupos e usuários)
+- `/admin/groups/create`: Criar grupo
+- `/admin/groups/<id>/edit`: Editar grupo
+- `/admin/groups/<id>/delete`: Deletar grupo
+- `/admin/groups/<id>/members`: Gerenciar membros do grupo
+- `/admin/users/create`: Criar usuário comum
 
 ### Templates
-- `index.html`: Lista de tarefas
-- `admin/dashboard.html`: Painel admin
-- `admin/groups.html`: Lista de grupos
+- `index.html`: Lista de tarefas com filtros
+- `editar.html`: Edição de tarefa
+- `admin/dashboard.html`: Painel admin com tabelas de grupos e usuários
+- `admin/create_group.html`: Criar grupo
+- `admin/edit_group.html`: Editar grupo (com botão deletar)
 - `admin/group_members.html`: Gerenciar membros
 - `admin/create_user.html`: Criar usuário
-- `admin/create_group.html`: Criar grupo

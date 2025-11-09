@@ -1,14 +1,31 @@
 # Gerenciador de Tarefas - Flask
 
-Aplicação web para gerenciamento de tarefas com sistema de autenticação.
+Aplicação web colaborativa para gerenciamento de tarefas com sistema de grupos e autenticação.
 
 ## Funcionalidades
 
-- Sistema de login e registro de usuários
-- Adicionar, editar e deletar tarefas
-- Cada usuário vê apenas suas próprias tarefas
+### Para Usuários Comuns
+- Sistema de login seguro com autenticação
+- Visualizar tarefas de todos os membros do grupo
+- Adicionar, editar e deletar suas próprias tarefas
+- Filtrar tarefas por usuário ou grupo
+- Ver quem criou cada tarefa
 - Interface responsiva e moderna
-- Banco de dados SQLite
+
+### Para Administradores
+- Criar e gerenciar grupos de tarefas
+- Criar usuários comuns via interface web
+- Adicionar/remover membros dos grupos
+- Editar e deletar tarefas de qualquer usuário do grupo
+- Visualização em tempo real de membros e tarefas por grupo
+
+## Diferenciais
+
+- **Grupos de Tarefas**: Organize equipes e compartilhe tarefas
+- **Permissões Granulares**: Controle sobre quem pode editar cada tarefa
+- **Filtros Inteligentes**: Por usuário e por grupo
+- **Interface Intuitiva**: Design limpo e fácil de usar
+- **Banco de Dados SQLite**: Leve e sem necessidade de servidor externo
 
 ## Tecnologias
 
@@ -19,24 +36,69 @@ Aplicação web para gerenciamento de tarefas com sistema de autenticação.
 - **Docker** - Containerização
 - **Gunicorn** - Servidor WSGI para produção
 
+## Início Rápido
+
+### Pré-requisitos
+
+- Python 3.8 ou superior
+- pip (gerenciador de pacotes Python)
+
+### Instalação Local
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/seu-usuario/agenda-tarefas.git
+cd agenda-tarefas
+
+# 2. Instale as dependências
+pip install -r requirements.txt
+
+# 3. Inicie a aplicação (o banco é criado automaticamente)
+python app.py
+
+# 4. Em outro terminal, crie o primeiro administrador
+python create_user.py
+```
+
+Acesse: http://localhost:5000
+
+### Primeiros Passos
+
+1. **Login** com o usuário administrador criado
+2. Acesse **Administração** no header
+3. **Crie um Grupo de Tarefas** (ex: "Equipe de Desenvolvimento")
+4. **Adicione-se como membro** do grupo
+5. Volte para a página principal e **crie sua primeira tarefa**!
+
+Veja documentação completa em [GRUPOS_README.md](GRUPOS_README.md)
+
+---
+
 ## Estrutura do Projeto
 
 ```
-flask_app/
-├── app.py              # Aplicação principal
-├── models.py           # Modelos do banco de dados
-├── templates/          # Templates Jinja2
-│   ├── base.html
-│   ├── login.html
-│   ├── registro.html
-│   ├── index.html
-│   └── editar.html
-├── static/             # Arquivos estáticos (CSS, JS)
-├── data/               # Banco de dados (criado automaticamente)
-├── requirements.txt    # Dependências Python
-├── Dockerfile          # Configuração Docker
-├── docker-compose.yml  # Orquestração Docker
-└── README.md          # Este arquivo
+agenda-tarefas/
+├── app.py                    # Aplicação principal Flask
+├── models.py                 # Modelos do banco de dados (User, TaskGroup, Tarefa)
+├── create_user.py            # Script para criar usuários (admin via CLI)
+├── init_db.py               # Script de inicialização do banco
+├── templates/                # Templates Jinja2
+│   ├── base.html            # Template base
+│   ├── login.html           # Página de login
+│   ├── index.html           # Lista de tarefas (com filtros)
+│   ├── editar.html          # Edição de tarefa
+│   └── admin/               # Templates de administração
+│       ├── dashboard.html   # Painel de controle
+│       ├── create_group.html
+│       ├── edit_group.html
+│       ├── group_members.html
+│       └── create_user.html
+├── instance/                 # Banco de dados SQLite (criado automaticamente)
+├── requirements.txt          # Dependências Python
+├── Dockerfile                # Configuração Docker
+├── docker-compose.yml        # Orquestração Docker
+├── README.md                 # Este arquivo
+└── GRUPOS_README.md          # Documentação do sistema de grupos
 ```
 
 ---
