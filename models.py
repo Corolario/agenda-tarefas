@@ -40,19 +40,9 @@ class User(UserMixin, db.Model):
         self.password_hash = ph.hash(password)
 
     def check_password(self, password):
-        """
-        Verifica se a senha está correta usando Argon2.
-        Também faz rehashing automático se os parâmetros mudaram.
-        """
+        """Verifica se a senha está correta usando Argon2."""
         try:
-            # Verifica a senha
             ph.verify(self.password_hash, password)
-
-            # Verifica se precisa rehash (se os parâmetros mudaram)
-            if ph.check_needs_rehash(self.password_hash):
-                self.password_hash = ph.hash(password)
-                db.session.commit()
-
             return True
         except VerifyMismatchError:
             return False

@@ -12,7 +12,7 @@ Este documento descreve as melhorias de segurança implementadas no projeto para
 - Resistente a ataques de GPU e ASIC
 - Proteção contra ataques de força bruta
 - Resistente a rainbow tables
-- Rehashing automático quando parâmetros mudam
+- Parâmetros ajustáveis (tempo, memória, paralelismo)
 
 **Implementação:**
 ```python
@@ -141,14 +141,16 @@ DATABASE_URL=postgresql://usuario:senha@localhost/nome_banco
 4. **Monitore** logs de segurança regularmente
 5. **Faça** backups regulares do banco de dados
 
-## 🔄 Migração de Senhas Antigas
+## 🗄️ Inicialização do Banco de Dados
 
-As senhas antigas (SHA-256) serão automaticamente migradas para Argon2 quando os usuários fizerem login. O processo é transparente:
+Para inicializar o banco de dados com as novas configurações de segurança:
 
-1. Usuário faz login
-2. Sistema verifica senha com Argon2
-3. Se a verificação falhar, tenta com método antigo (Werkzeug)
-4. Se sucesso com método antigo, rehash automático com Argon2
-5. Próximo login usará Argon2
+```bash
+# Inicializar o banco de dados
+python init_db.py
 
-**Nota:** Esta funcionalidade de migração automática ainda precisa ser implementada se houver usuários existentes.
+# Criar primeiro administrador
+python create_user.py
+```
+
+Todas as senhas serão armazenadas usando Argon2 desde o início.
