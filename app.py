@@ -1,10 +1,14 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFProtect
+from flask_talisman import Talisman
 from dotenv import load_dotenv
 from datetime import datetime
 from functools import wraps
 from models import db, User, Tarefa, TaskGroup, user_taskgroup
+from forms import (LoginForm, CreateUserForm, TaskForm, EditTaskForm,
+                   TaskGroupForm, DeleteForm, ManageMemberForm)
 from collections import defaultdict
 
 # Carregar variáveis de ambiente
@@ -15,12 +19,42 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-pro
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///tarefas.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Configurações de segurança
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'False') == 'True'  # True em produção com HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hora
+app.config['WTF_CSRF_TIME_LIMIT'] = None  # Token CSRF não expira (usa session)
+app.config['WTF_CSRF_SSL_STRICT'] = os.getenv('WTF_CSRF_SSL_STRICT', 'False') == 'True'  # True em produção
+
 # Inicializar extensões
 db.init_app(app)
+
+# Proteção CSRF
+csrf = CSRFProtect(app)
+
+# Headers de segurança com Flask-Talisman (apenas em produção)
+if os.getenv('FLASK_ENV') == 'production':
+    # Content Security Policy
+    csp = {
+        'default-src': "'self'",
+        'script-src': "'self' 'unsafe-inline'",  # unsafe-inline necessário para scripts inline nos templates
+        'style-src': "'self' 'unsafe-inline'",   # unsafe-inline necessário para estilos inline
+        'img-src': "'self' data:",
+        'font-src': "'self'",
+    }
+    Talisman(app,
+             content_security_policy=csp,
+             force_https=True,
+             strict_transport_security=True,
+             session_cookie_secure=True)
+
+# Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Por favor, faça login para acessar esta página.'
+login_manager.session_protection = 'strong'  # Proteção adicional de sessão
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -46,20 +80,19 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+    form = LoginForm()
 
-        user = User.query.filter_by(username=username).first()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
 
-        if user and user.check_password(password):
+        if user and user.check_password(form.password.data):
             login_user(user)
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('index'))
         else:
             flash('Usuário ou senha incorretos.', 'danger')
 
-    return render_template('login.html')
+    return render_template('login.html', form=form)
 
 
 @app.route('/logout')
@@ -75,13 +108,17 @@ def logout():
 @app.route('/')
 @login_required
 def index():
+    # Criar formulário de tarefa
+    form = TaskForm()
+    form.task_group_id.choices = [(g.id, g.name) for g in current_user.task_groups]
+
     # Buscar grupos do usuário
     user_groups = current_user.task_groups
 
     # Se o usuário não pertence a nenhum grupo, retornar vazio
     if not user_groups:
         return render_template('index.html', tarefas_agrupadas=[], total_tarefas=0, user_groups=user_groups,
-                             members_list=[], selected_user_id=None, selected_group_id=None)
+                             members_list=[], selected_user_id=None, selected_group_id=None, form=form)
 
     # Buscar IDs dos grupos do usuário
     group_ids = [group.id for group in user_groups]
@@ -148,42 +185,40 @@ def index():
 
     return render_template('index.html', tarefas_agrupadas=tarefas_agrupadas, total_tarefas=len(tarefas),
                          user_groups=user_groups, members_list=members_list,
-                         selected_user_id=selected_user_id, selected_group_id=selected_group_id)
+                         selected_user_id=selected_user_id, selected_group_id=selected_group_id, form=form)
 
 
 @app.route('/adicionar', methods=['POST'])
 @login_required
 def adicionar():
-    data_str = request.form.get('data')
-    descricao = request.form.get('descricao')
-    task_group_id = request.form.get('task_group_id')
+    form = TaskForm()
 
-    if not data_str or not descricao or not task_group_id:
-        flash('Por favor, preencha todos os campos.', 'danger')
-        return redirect(url_for('index'))
+    # Preencher choices do SelectField com grupos do usuário
+    form.task_group_id.choices = [(g.id, g.name) for g in current_user.task_groups]
 
-    # Verificar se o usuário pertence ao grupo
-    task_group = TaskGroup.query.get(task_group_id)
-    if not task_group or task_group not in current_user.task_groups:
-        flash('Você não pertence a este grupo de tarefas.', 'danger')
-        return redirect(url_for('index'))
+    if form.validate_on_submit():
+        # Verificar se o usuário pertence ao grupo
+        task_group = TaskGroup.query.get(form.task_group_id.data)
+        if not task_group or task_group not in current_user.task_groups:
+            flash('Você não pertence a este grupo de tarefas.', 'danger')
+            return redirect(url_for('index'))
 
-    try:
-        data = datetime.strptime(data_str, '%Y-%m-%d').date()
-    except ValueError:
-        flash('Data inválida.', 'danger')
-        return redirect(url_for('index'))
+        tarefa = Tarefa(
+            data=form.data.data,
+            descricao=form.descricao.data,
+            user_id=current_user.id,
+            task_group_id=form.task_group_id.data
+        )
+        db.session.add(tarefa)
+        db.session.commit()
 
-    tarefa = Tarefa(
-        data=data,
-        descricao=descricao,
-        user_id=current_user.id,
-        task_group_id=task_group_id
-    )
-    db.session.add(tarefa)
-    db.session.commit()
+        flash('Tarefa adicionada com sucesso!', 'success')
+    else:
+        # Mostrar erros de validação
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(error, 'danger')
 
-    flash('Tarefa adicionada com sucesso!', 'success')
     return redirect(url_for('index'))
 
 
@@ -204,28 +239,27 @@ def editar(id):
         flash('Você não tem permissão para editar esta tarefa.', 'danger')
         return redirect(url_for('index'))
 
-    if request.method == 'POST':
-        data_str = request.form.get('data')
-        descricao = request.form.get('descricao')
+    form = EditTaskForm(obj=tarefa)
 
-        if not data_str or not descricao:
-            flash('Por favor, preencha todos os campos.', 'danger')
-        else:
-            try:
-                tarefa.data = datetime.strptime(data_str, '%Y-%m-%d').date()
-                tarefa.descricao = descricao
-                db.session.commit()
-                flash('Tarefa atualizada com sucesso!', 'success')
-                return redirect(url_for('index'))
-            except ValueError:
-                flash('Data inválida.', 'danger')
+    if form.validate_on_submit():
+        tarefa.data = form.data.data
+        tarefa.descricao = form.descricao.data
+        db.session.commit()
+        flash('Tarefa atualizada com sucesso!', 'success')
+        return redirect(url_for('index'))
 
-    return render_template('editar.html', tarefa=tarefa)
+    return render_template('editar.html', tarefa=tarefa, form=form)
 
 
 @app.route('/deletar/<int:id>', methods=['POST'])
 @login_required
 def deletar(id):
+    form = DeleteForm()
+
+    if not form.validate_on_submit():
+        flash('Token CSRF inválido.', 'danger')
+        return redirect(url_for('index'))
+
     tarefa = Tarefa.query.get_or_404(id)
 
     # Verificar permissões
@@ -263,24 +297,20 @@ def admin_dashboard():
 @admin_required
 def admin_create_group():
     """Criar novo grupo de tarefas"""
-    if request.method == 'POST':
-        name = request.form.get('name')
-        description = request.form.get('description')
+    form = TaskGroupForm()
 
-        if not name:
-            flash('Por favor, preencha o nome do grupo.', 'danger')
-        else:
-            group = TaskGroup(
-                name=name,
-                description=description,
-                admin_id=current_user.id
-            )
-            db.session.add(group)
-            db.session.commit()
-            flash(f'Grupo "{name}" criado com sucesso!', 'success')
-            return redirect(url_for('admin_dashboard'))
+    if form.validate_on_submit():
+        group = TaskGroup(
+            name=form.name.data,
+            description=form.description.data,
+            admin_id=current_user.id
+        )
+        db.session.add(group)
+        db.session.commit()
+        flash(f'Grupo "{form.name.data}" criado com sucesso!', 'success')
+        return redirect(url_for('admin_dashboard'))
 
-    return render_template('admin/create_group.html')
+    return render_template('admin/create_group.html', form=form)
 
 
 @app.route('/admin/groups/<int:id>/edit', methods=['GET', 'POST'])
@@ -295,20 +325,16 @@ def admin_edit_group(id):
         flash('Você não tem permissão para editar este grupo.', 'danger')
         return redirect(url_for('admin_dashboard'))
 
-    if request.method == 'POST':
-        name = request.form.get('name')
-        description = request.form.get('description')
+    form = TaskGroupForm(obj=group)
 
-        if not name:
-            flash('Por favor, preencha o nome do grupo.', 'danger')
-        else:
-            group.name = name
-            group.description = description
-            db.session.commit()
-            flash(f'Grupo "{name}" atualizado com sucesso!', 'success')
-            return redirect(url_for('admin_dashboard'))
+    if form.validate_on_submit():
+        group.name = form.name.data
+        group.description = form.description.data
+        db.session.commit()
+        flash(f'Grupo "{form.name.data}" atualizado com sucesso!', 'success')
+        return redirect(url_for('admin_dashboard'))
 
-    return render_template('admin/edit_group.html', group=group)
+    return render_template('admin/edit_group.html', group=group, form=form)
 
 
 @app.route('/admin/groups/<int:id>/delete', methods=['POST'])
@@ -316,6 +342,12 @@ def admin_edit_group(id):
 @admin_required
 def admin_delete_group(id):
     """Deletar grupo de tarefas"""
+    form = DeleteForm()
+
+    if not form.validate_on_submit():
+        flash('Token CSRF inválido.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
     group = TaskGroup.query.get_or_404(id)
 
     # Verificar se o grupo pertence ao admin
@@ -342,44 +374,50 @@ def admin_group_members(id):
         flash('Você não tem permissão para gerenciar este grupo.', 'danger')
         return redirect(url_for('admin_dashboard'))
 
-    if request.method == 'POST':
-        action = request.form.get('action')
-        user_id = request.form.get('user_id')
-
-        if not user_id:
-            flash('Usuário não especificado.', 'danger')
-            return redirect(url_for('admin_group_members', id=id))
-
-        user = User.query.get(user_id)
-        if not user:
-            flash('Usuário não encontrado.', 'danger')
-            return redirect(url_for('admin_group_members', id=id))
-
-        if action == 'add':
-            if user not in group.members.all():
-                group.members.append(user)
-                db.session.commit()
-                flash(f'Usuário "{user.username}" adicionado ao grupo.', 'success')
-            else:
-                flash(f'Usuário "{user.username}" já está no grupo.', 'info')
-        elif action == 'remove':
-            if user in group.members.all():
-                group.members.remove(user)
-                db.session.commit()
-                flash(f'Usuário "{user.username}" removido do grupo.', 'success')
-            else:
-                flash(f'Usuário "{user.username}" não está no grupo.', 'info')
-
-        return redirect(url_for('admin_group_members', id=id))
+    form = ManageMemberForm()
 
     # Listar membros atuais e usuários disponíveis
     current_members = group.members.all()
     all_users = User.query.all()  # Incluir todos os usuários, inclusive admins
+
+    if request.method == 'POST':
+        # Preencher choices dinamicamente antes da validação
+        action = request.form.get('action')
+        if action == 'add':
+            available_users = [u for u in all_users if u not in current_members]
+            form.user_id.choices = [(u.id, u.username) for u in available_users]
+        else:  # remove
+            form.user_id.choices = [(u.id, u.username) for u in current_members]
+
+        if form.validate_on_submit():
+            user = User.query.get(form.user_id.data)
+            if not user:
+                flash('Usuário não encontrado.', 'danger')
+                return redirect(url_for('admin_group_members', id=id))
+
+            if form.action.data == 'add':
+                if user not in current_members:
+                    group.members.append(user)
+                    db.session.commit()
+                    flash(f'Usuário "{user.username}" adicionado ao grupo.', 'success')
+                else:
+                    flash(f'Usuário "{user.username}" já está no grupo.', 'info')
+            elif form.action.data == 'remove':
+                if user in current_members:
+                    group.members.remove(user)
+                    db.session.commit()
+                    flash(f'Usuário "{user.username}" removido do grupo.', 'success')
+                else:
+                    flash(f'Usuário "{user.username}" não está no grupo.', 'info')
+
+            return redirect(url_for('admin_group_members', id=id))
+
+    # Para GET, preparar choices para ambos os formulários
     available_users = [u for u in all_users if u not in current_members]
 
     return render_template('admin/group_members.html', group=group,
                          current_members=current_members,
-                         available_users=available_users)
+                         available_users=available_users, form=form)
 
 
 @app.route('/admin/users/create', methods=['GET', 'POST'])
@@ -387,31 +425,17 @@ def admin_group_members(id):
 @admin_required
 def admin_create_user():
     """Criar novo usuário comum"""
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
+    form = CreateUserForm()
 
-        if not username or not password:
-            flash('Por favor, preencha todos os campos.', 'danger')
-        elif len(password) < 6:
-            flash('A senha deve ter no mínimo 6 caracteres.', 'danger')
-        elif password != confirm_password:
-            flash('As senhas não coincidem.', 'danger')
-        else:
-            # Verificar se usuário já existe
-            existing_user = User.query.filter_by(username=username).first()
-            if existing_user:
-                flash(f'O usuário "{username}" já existe.', 'danger')
-            else:
-                user = User(username=username, is_admin=False)
-                user.set_password(password)
-                db.session.add(user)
-                db.session.commit()
-                flash(f'Usuário "{username}" criado com sucesso!', 'success')
-                return redirect(url_for('admin_dashboard'))
+    if form.validate_on_submit():
+        user = User(username=form.username.data, is_admin=False)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash(f'Usuário "{form.username.data}" criado com sucesso!', 'success')
+        return redirect(url_for('admin_dashboard'))
 
-    return render_template('admin/create_user.html')
+    return render_template('admin/create_user.html', form=form)
 
 
 # ============= INICIALIZAÇÃO =============
