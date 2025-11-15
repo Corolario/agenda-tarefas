@@ -62,22 +62,18 @@
         </div>
         <div class="modal-body">
             <form method="POST" action="{{ url_for('adicionar') }}">
+                {{ form.hidden_tag() }}
                 <div class="form-group">
                     <label for="task_group_id">Grupo de Tarefas</label>
-                    <select id="task_group_id" name="task_group_id" required>
-                        <option value="">Selecione um grupo...</option>
-                        {% for group in user_groups %}
-                        <option value="{{ group.id }}">{{ group.name }}</option>
-                        {% endfor %}
-                    </select>
+                    {{ form.task_group_id(id="task_group_id") }}
                 </div>
                 <div class="form-group">
                     <label for="data">Data</label>
-                    <input type="date" id="data" name="data" required>
+                    {{ form.data(id="data") }}
                 </div>
                 <div class="form-group">
                     <label for="descricao">Descrição da Tarefa</label>
-                    <input type="text" id="descricao" name="descricao" placeholder="Digite a tarefa..." required>
+                    {{ form.descricao(id="descricao", placeholder="Digite a tarefa...") }}
                 </div>
                 <button type="submit" class="btn" style="width: 100%;">Adicionar Tarefa</button>
             </form>
