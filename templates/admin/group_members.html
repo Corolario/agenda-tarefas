@@ -56,6 +56,7 @@
     <h3>Adicionar Membro</h3>
     {% if available_users %}
     <form method="POST" class="add-member-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <input type="hidden" name="action" value="add">
         <select name="user_id" required>
             <option value="">Selecione um usuário...</option>
@@ -88,6 +89,7 @@
                 <td>{{ member.created_at.strftime('%d/%m/%Y') }}</td>
                 <td>
                     <form method="POST" style="display: inline;" onsubmit="return confirm('Remover {{ member.username }} deste grupo?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="action" value="remove">
                         <input type="hidden" name="user_id" value="{{ member.id }}">
                         <button type="submit" class="btn" style="background: #e74c3c; font-size: 12px; padding: 6px 12px;">Remover</button>

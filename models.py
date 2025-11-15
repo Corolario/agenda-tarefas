@@ -1,9 +1,14 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from datetime import datetime
 
 db = SQLAlchemy()
+
+# Inicializar Argon2 Password Hasher
+# Argon2id é a variante recomendada que combina resistência a ataques de tempo e memória
+ph = PasswordHasher()
 
 # Tabela associativa para relacionamento many-to-many entre User e TaskGroup
 user_taskgroup = db.Table('user_taskgroup',
@@ -27,12 +32,20 @@ class User(UserMixin, db.Model):
     task_groups = db.relationship('TaskGroup', secondary=user_taskgroup, backref=db.backref('members', lazy='dynamic'))
 
     def set_password(self, password):
-        """Cria hash da senha"""
-        self.password_hash = generate_password_hash(password)
+        """
+        Cria hash da senha usando Argon2id.
+        Argon2 é o vencedor do Password Hashing Competition e oferece
+        melhor proteção contra ataques de força bruta e rainbow tables.
+        """
+        self.password_hash = ph.hash(password)
 
     def check_password(self, password):
-        """Verifica se a senha está correta"""
-        return check_password_hash(self.password_hash, password)
+        """Verifica se a senha está correta usando Argon2."""
+        try:
+            ph.verify(self.password_hash, password)
+            return True
+        except VerifyMismatchError:
+            return False
 
     def __repr__(self):
         return f'<User {self.username}>'
