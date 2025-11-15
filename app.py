@@ -4,9 +4,8 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from flask_wtf.csrf import CSRFProtect
 from flask_talisman import Talisman
 from dotenv import load_dotenv
-from datetime import datetime
 from functools import wraps
-from models import db, User, Tarefa, TaskGroup, user_taskgroup
+from models import db, User, Tarefa, TaskGroup
 from forms import (LoginForm, CreateUserForm, TaskForm, EditTaskForm,
                    TaskGroupForm, DeleteForm, ManageMemberForm)
 from collections import defaultdict
