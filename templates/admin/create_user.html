@@ -5,56 +5,35 @@
 {% block page_title %}Criar Novo Usuário{% endblock %}
 
 {% block header_buttons %}
-<a href="{{ url_for('admin_dashboard') }}" class="btn" style="background: #95a5a6;">Cancelar</a>
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Cancelar</a>
 {% endblock %}
 
 {% block content %}
-<style>
-    .form-container {
-        max-width: 600px;
-        background: white;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .form-group {
-        margin-bottom: 20px;
-    }
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: bold;
-        color: #333;
-    }
-    .form-group input {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 14px;
-    }
-</style>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control", placeholder="Digite o nome de usuário", autofocus=True) }}
+                    </div>
 
-<div class="form-container">
-    <form method="POST">
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            <label for="username">Nome de Usuário *</label>
-            {{ form.username(id="username", placeholder="Digite o nome de usuário", autofocus=True) }}
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control", placeholder="Mínimo 6 caracteres") }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.confirm_password.label(class="form-label") }}
+                        {{ form.confirm_password(class="form-control", placeholder="Digite a senha novamente") }}
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">Criar Usuário</button>
+                </form>
+            </div>
         </div>
-
-        <div class="form-group">
-            <label for="password">Senha *</label>
-            {{ form.password(id="password", placeholder="Mínimo 6 caracteres") }}
-        </div>
-
-        <div class="form-group">
-            <label for="confirm_password">Confirmar Senha *</label>
-            {{ form.confirm_password(id="confirm_password", placeholder="Digite a senha novamente") }}
-        </div>
-
-        <button type="submit" class="btn" style="width: 100%; background: #27ae60; font-size: 16px;">Criar Usuário</button>
-    </form>
+    </div>
 </div>
-
 {% endblock %}

@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
 from flask_talisman import Talisman
+from flask_bootstrap import Bootstrap5
 from dotenv import load_dotenv
 from functools import wraps
 from models import db, User, Tarefa, TaskGroup
@@ -28,6 +29,7 @@ app.config['WTF_CSRF_SSL_STRICT'] = os.getenv('WTF_CSRF_SSL_STRICT', 'False') ==
 
 # Inicializar extensões
 db.init_app(app)
+bootstrap = Bootstrap5(app)
 
 # Proteção CSRF
 csrf = CSRFProtect(app)

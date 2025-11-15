@@ -5,103 +5,74 @@
 {% block page_title %}Membros: {{ group.name }}{% endblock %}
 
 {% block header_buttons %}
-<a href="{{ url_for('admin_dashboard') }}" class="btn" style="background: #95a5a6;">Voltar</a>
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Voltar</a>
 {% endblock %}
 
 {% block content %}
-<style>
-    .members-section {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .members-section h3 {
-        margin-top: 0;
-        margin-bottom: 15px;
-        color: #667eea;
-        border-bottom: 2px solid #667eea;
-        padding-bottom: 10px;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-    thead {
-        background: #f5f5f5;
-        font-weight: bold;
-    }
-    td {
-        padding: 12px;
-        border-bottom: 1px solid #e0e0e0;
-    }
-    .add-member-form {
-        display: flex;
-        gap: 10px;
-        align-items: flex-end;
-        margin-bottom: 20px;
-    }
-    .add-member-form select {
-        flex: 1;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 14px;
-    }
-</style>
-
-<div class="members-section">
-    <h3>Adicionar Membro</h3>
-    {% if available_users %}
-    <form method="POST" class="add-member-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <input type="hidden" name="action" value="add">
-        <select name="user_id" required>
-            <option value="">Selecione um usuário...</option>
-            {% for user in available_users %}
-            <option value="{{ user.id }}">{{ user.username }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="btn" style="background: #27ae60;">Adicionar</button>
-    </form>
-    {% else %}
-    <p style="color: #999;">Todos os usuários já estão neste grupo.</p>
-    {% endif %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Adicionar Membro</h5>
+    </div>
+    <div class="card-body">
+        {% if available_users %}
+        <form method="POST" class="row g-3 align-items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="action" value="add">
+            <div class="col-md-9">
+                <label for="user_id" class="form-label">Selecione um usuário</label>
+                <select name="user_id" id="user_id" class="form-select" required>
+                    <option value="">Selecione um usuário...</option>
+                    {% for user in available_users %}
+                    <option value="{{ user.id }}">{{ user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-success w-100">Adicionar</button>
+            </div>
+        </form>
+        {% else %}
+        <p class="text-muted mb-0">Todos os usuários já estão neste grupo.</p>
+        {% endif %}
+    </div>
 </div>
 
-<div class="members-section">
-    <h3>Membros Atuais ({{ current_members|length }})</h3>
-    {% if current_members %}
-    <table>
-        <thead>
-            <tr>
-                <td>Usuário</td>
-                <td>Membro desde</td>
-                <td style="width: 100px;">Ações</td>
-            </tr>
-        </thead>
-        <tbody>
-            {% for member in current_members %}
-            <tr>
-                <td>{{ member.username }}</td>
-                <td>{{ member.created_at.strftime('%d/%m/%Y') }}</td>
-                <td>
-                    <form method="POST" style="display: inline;" onsubmit="return confirm('Remover {{ member.username }} deste grupo?');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <input type="hidden" name="action" value="remove">
-                        <input type="hidden" name="user_id" value="{{ member.id }}">
-                        <button type="submit" class="btn" style="background: #e74c3c; font-size: 12px; padding: 6px 12px;">Remover</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="color: #999;">Este grupo ainda não tem membros.</p>
-    {% endif %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Membros Atuais <span class="badge bg-secondary">{{ current_members|length }}</span></h5>
+    </div>
+    <div class="card-body">
+        {% if current_members %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Usuário</th>
+                        <th>Membro desde</th>
+                        <th style="width: 120px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in current_members %}
+                    <tr>
+                        <td>{{ member.username }}</td>
+                        <td>{{ member.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <form method="POST" class="d-inline" onsubmit="return confirm('Remover {{ member.username }} deste grupo?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="action" value="remove">
+                                <input type="hidden" name="user_id" value="{{ member.id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">Este grupo ainda não tem membros.</p>
+        {% endif %}
+    </div>
 </div>
-
 {% endblock %}
