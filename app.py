@@ -27,6 +27,9 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hora
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # Token CSRF não expira (usa session)
 app.config['WTF_CSRF_SSL_STRICT'] = os.getenv('WTF_CSRF_SSL_STRICT', 'False') == 'True'  # True em produção
 
+# Configurações do Bootstrap-Flask
+app.config['BOOTSTRAP_SERVE_LOCAL'] = True  # Servir Bootstrap localmente ao invés de CDN
+
 # Inicializar extensões
 db.init_app(app)
 bootstrap = Bootstrap5(app)
