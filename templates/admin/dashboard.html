@@ -5,126 +5,80 @@
 {% block page_title %}Painel de Administração{% endblock %}
 
 {% block header_buttons %}
-<a href="{{ url_for('index') }}" class="btn" style="background: #3498db;">Voltar para Tarefas</a>
+<a href="{{ url_for('index') }}" class="btn btn-outline-primary">Voltar para Tarefas</a>
 {% endblock %}
 
 {% block content %}
-<style>
-    .admin-section {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .admin-section h3 {
-        margin-top: 0;
-        margin-bottom: 15px;
-        color: #667eea;
-        border-bottom: 2px solid #667eea;
-        padding-bottom: 10px;
-    }
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-        border-bottom: 2px solid #667eea;
-        padding-bottom: 10px;
-    }
-    .section-header h3 {
-        margin: 0;
-        border: none;
-        padding: 0;
-    }
-    .section-header .btn {
-        padding: 6px 16px;
-        font-size: 13px;
-    }
-    table {
-        width: 100%;
-        margin-top: 15px;
-        border-collapse: collapse;
-    }
-    thead {
-        background: #f5f5f5;
-        font-weight: bold;
-    }
-    td {
-        padding: 10px;
-        border-bottom: 1px solid #e0e0e0;
-    }
-    .table-actions {
-        display: flex;
-        gap: 5px;
-    }
-</style>
-
-<div class="admin-section">
-    <div class="section-header">
-        <h3>Gerenciar Grupos de Tarefas</h3>
-        <a href="{{ url_for('admin_create_group') }}" class="btn" style="background: #27ae60;">+ Novo Grupo</a>
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Gerenciar Grupos de Tarefas</h5>
+        <a href="{{ url_for('admin_create_group') }}" class="btn btn-success btn-sm">+ Novo Grupo</a>
     </div>
-
-    {% if groups %}
-    <table>
-        <thead>
-            <tr>
-                <td>Nome do Grupo</td>
-                <td style="width: 120px; text-align: center;">Membros</td>
-                <td style="width: 120px; text-align: center;">Tarefas</td>
-                <td style="width: 150px;">Criado em</td>
-                <td style="width: 250px;">Ações</td>
-            </tr>
-        </thead>
-        <tbody>
-            {% for group in groups %}
-            <tr>
-                <td>{{ group.name }}</td>
-                <td style="text-align: center;">{{ group.members.count() }}</td>
-                <td style="text-align: center;">{{ group.tarefas|length }}</td>
-                <td>{{ group.created_at.strftime('%d/%m/%Y') }}</td>
-                <td>
-                    <div class="table-actions">
-                        <a href="{{ url_for('admin_group_members', id=group.id) }}" class="btn" style="background: #3498db; font-size: 12px; padding: 6px 12px;">Gerenciar Membros</a>
-                        <a href="{{ url_for('admin_edit_group', id=group.id) }}" class="btn" style="background: #f39c12; font-size: 12px; padding: 6px 12px;">Editar</a>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="color: #999;">Nenhum grupo de tarefas cadastrado.</p>
-    {% endif %}
+    <div class="card-body">
+        {% if groups %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome do Grupo</th>
+                        <th class="text-center" style="width: 100px;">Membros</th>
+                        <th class="text-center" style="width: 100px;">Tarefas</th>
+                        <th style="width: 120px;">Criado em</th>
+                        <th style="width: 280px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in groups %}
+                    <tr>
+                        <td>{{ group.name }}</td>
+                        <td class="text-center">{{ group.members.count() }}</td>
+                        <td class="text-center">{{ group.tarefas|length }}</td>
+                        <td>{{ group.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('admin_group_members', id=group.id) }}" class="btn btn-sm btn-outline-primary">Gerenciar Membros</a>
+                                <a href="{{ url_for('admin_edit_group', id=group.id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">Nenhum grupo de tarefas cadastrado.</p>
+        {% endif %}
+    </div>
 </div>
 
-<div class="admin-section">
-    <div class="section-header">
-        <h3>Gerenciar Usuários</h3>
-        <a href="{{ url_for('admin_create_user') }}" class="btn" style="background: #27ae60;">+ Novo Usuário</a>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Gerenciar Usuários</h5>
+        <a href="{{ url_for('admin_create_user') }}" class="btn btn-success btn-sm">+ Novo Usuário</a>
     </div>
-
-    {% if users %}
-    <table>
-        <thead>
-            <tr>
-                <td>Usuário</td>
-                <td>Criado em</td>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td>{{ user.username }}</td>
-                <td>{{ user.created_at.strftime('%d/%m/%Y às %H:%M') }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="color: #999;">Nenhum usuário comum cadastrado.</p>
-    {% endif %}
+    <div class="card-body">
+        {% if users %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Usuário</th>
+                        <th>Criado em</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.created_at.strftime('%d/%m/%Y às %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">Nenhum usuário comum cadastrado.</p>
+        {% endif %}
+    </div>
 </div>
-
 {% endblock %}

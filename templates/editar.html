@@ -5,49 +5,33 @@
 {% block page_title %}Editar Tarefa{% endblock %}
 
 {% block content %}
-<style>
-    .edit-container {
-        max-width: 600px;
-        margin: 0 auto;
-    }
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <form method="POST" action="{{ url_for('editar', id=tarefa.id) }}">
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+                {{ form.data.label(class="form-label") }}
+                {{ form.data(class="form-control") }}
+            </div>
 
-    .button-group {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
+            <div class="mb-3">
+                {{ form.descricao.label(class="form-label") }}
+                {{ form.descricao(class="form-control", rows="4") }}
+            </div>
 
-    .button-group .btn {
-        flex: 1;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-</style>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="button" class="btn btn-danger ms-auto"
+                        onclick="if(confirm('Tem certeza que deseja deletar esta tarefa?')) document.getElementById('deleteForm').submit()">
+                    Deletar
+                </button>
+            </div>
+        </form>
 
-<div class="edit-container">
-    <form method="POST" action="{{ url_for('editar', id=tarefa.id) }}">
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            <label for="data">Data</label>
-            {{ form.data(id="data") }}
-        </div>
-
-        <div class="form-group">
-            <label for="descricao">Descrição</label>
-            {{ form.descricao(id="descricao") }}
-        </div>
-
-        <div class="button-group">
-            <button type="submit" class="btn">Salvar</button>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
-            <button type="button" class="btn btn-danger" onclick="if(confirm('Tem certeza que deseja deletar esta tarefa?')) document.getElementById('deleteForm').submit()">Deletar</button>
-        </div>
-    </form>
-
-    <form id="deleteForm" method="POST" action="{{ url_for('deletar', id=tarefa.id) }}" style="display: none;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    </form>
+        <form id="deleteForm" method="POST" action="{{ url_for('deletar', id=tarefa.id) }}" class="d-none">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        </form>
+    </div>
 </div>
 {% endblock %}

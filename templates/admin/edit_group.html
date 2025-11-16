@@ -5,77 +5,42 @@
 {% block page_title %}Editar Grupo: {{ group.name }}{% endblock %}
 
 {% block header_buttons %}
-<a href="{{ url_for('admin_dashboard') }}" class="btn" style="background: #95a5a6;">Cancelar</a>
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Cancelar</a>
 {% endblock %}
 
 {% block content %}
-<style>
-    .form-container {
-        max-width: 600px;
-        background: white;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .form-group {
-        margin-bottom: 20px;
-    }
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: bold;
-        color: #333;
-    }
-    .form-group input,
-    .form-group textarea {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 14px;
-        font-family: inherit;
-    }
-    .form-group textarea {
-        min-height: 100px;
-        resize: vertical;
-    }
-    .button-group {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-    .button-group button,
-    .button-group .btn {
-        flex: 1;
-        font-size: 16px;
-        padding: 12px;
-    }
-</style>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control", autofocus=True) }}
+                    </div>
 
-<div class="form-container">
-    <form method="POST">
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            <label for="name">Nome do Grupo *</label>
-            {{ form.name(id="name", autofocus=True) }}
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4") }}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning flex-fill">Salvar Alterações</button>
+                        <button type="button" class="btn btn-danger flex-fill" onclick="confirmDelete()">Deletar Grupo</button>
+                    </div>
+                </form>
+
+                <form id="deleteForm" method="POST" action="{{ url_for('admin_delete_group', id=group.id) }}" class="d-none">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                </form>
+            </div>
         </div>
-
-        <div class="form-group">
-            <label for="description">Descrição (opcional)</label>
-            {{ form.description(id="description") }}
-        </div>
-
-        <div class="button-group">
-            <button type="submit" class="btn" style="background: #f39c12;">Salvar Alterações</button>
-            <button type="button" class="btn" style="background: #e74c3c;" onclick="confirmDelete()">Deletar Grupo</button>
-        </div>
-    </form>
-
-    <form id="deleteForm" method="POST" action="{{ url_for('admin_delete_group', id=group.id) }}" style="display: none;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    </form>
+    </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
 function confirmDelete() {
     if (confirm('Tem certeza que deseja deletar este grupo? Todas as tarefas associadas serão perdidas!')) {
@@ -83,5 +48,4 @@ function confirmDelete() {
     }
 }
 </script>
-
 {% endblock %}
