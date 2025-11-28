@@ -49,7 +49,7 @@ class TaskForm(FlaskForm):
     ])
     task_group_id = SelectField('Grupo de Tarefas', validators=[
         DataRequired(message='Selecione um grupo de tarefas.')
-    ], coerce=int)
+    ], coerce=lambda x: int(x) if x else None)
 
 
 class EditTaskForm(FlaskForm):
@@ -61,6 +61,9 @@ class EditTaskForm(FlaskForm):
         DataRequired(message='A descrição é obrigatória.'),
         Length(min=1, max=1000, message='A descrição deve ter no máximo 1000 caracteres.')
     ])
+    task_group_id = SelectField('Grupo de Tarefas', validators=[
+        DataRequired(message='Selecione um grupo de tarefas.')
+    ], coerce=int)
 
 
 class TaskGroupForm(FlaskForm):
