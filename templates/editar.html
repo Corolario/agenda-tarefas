@@ -10,6 +10,11 @@
         <form method="POST" action="{{ url_for('editar', id=tarefa.id) }}">
             {{ form.hidden_tag() }}
             <div class="mb-3">
+                {{ form.task_group_id.label(class="form-label") }}
+                {{ form.task_group_id(class="form-select") }}
+            </div>
+
+            <div class="mb-3">
                 {{ form.data.label(class="form-label") }}
                 {{ form.data(class="form-control") }}
             </div>
@@ -20,12 +25,12 @@
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Salvar</button>
-                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancelar</a>
-                <button type="button" class="btn btn-danger ms-auto"
+                <button type="button" class="btn btn-danger"
                         onclick="if(confirm('Tem certeza que deseja deletar esta tarefa?')) document.getElementById('deleteForm').submit()">
                     Deletar
                 </button>
+                <button type="submit" class="btn btn-primary ms-auto">Salvar</button>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancelar</a>
             </div>
         </form>
 

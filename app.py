@@ -114,7 +114,7 @@ def logout():
 def index():
     # Criar formulário de tarefa
     form = TaskForm()
-    form.task_group_id.choices = [(g.id, g.name) for g in current_user.task_groups]
+    form.task_group_id.choices = [('', '--- Selecione um grupo ---')] + [(g.id, g.name) for g in current_user.task_groups]
 
     # Buscar grupos do usuário
     user_groups = current_user.task_groups
@@ -198,7 +198,7 @@ def adicionar():
     form = TaskForm()
 
     # Preencher choices do SelectField com grupos do usuário
-    form.task_group_id.choices = [(g.id, g.name) for g in current_user.task_groups]
+    form.task_group_id.choices = [('', '--- Selecione um grupo ---')] + [(g.id, g.name) for g in current_user.task_groups]
 
     if form.validate_on_submit():
         # Verificar se o usuário pertence ao grupo
@@ -245,9 +245,19 @@ def editar(id):
 
     form = EditTaskForm(obj=tarefa)
 
+    # Preencher choices do SelectField com grupos do usuário
+    form.task_group_id.choices = [(g.id, g.name) for g in current_user.task_groups]
+
     if form.validate_on_submit():
+        # Verificar se o usuário pertence ao novo grupo
+        new_task_group = TaskGroup.query.get(form.task_group_id.data)
+        if not new_task_group or new_task_group not in current_user.task_groups:
+            flash('Você não pertence a este grupo de tarefas.', 'danger')
+            return redirect(url_for('index'))
+
         tarefa.data = form.data.data
         tarefa.descricao = form.descricao.data
+        tarefa.task_group_id = form.task_group_id.data
         db.session.commit()
         flash('Tarefa atualizada com sucesso!', 'success')
         return redirect(url_for('index'))
