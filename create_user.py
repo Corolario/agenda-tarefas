@@ -6,6 +6,7 @@ Funcionalidades:
 - Listar administradores
 - Listar todos os usuários
 - Alterar senha de usuários (administradores e normais)
+- Deletar usuários (administradores e normais)
 
 Uso: python create_user.py
 """
@@ -134,6 +135,77 @@ def change_password():
         print(f"\n❌ Erro ao alterar senha: {e}\n")
         return False
 
+def delete_user():
+    """Deleta um usuário do sistema (administrador ou normal)"""
+    print("\n=== Deletar Usuário ===\n")
+
+    try:
+        with app.app_context():
+            # Listar todos os usuários
+            users = User.query.order_by(User.username).all()
+
+            if not users:
+                print("Nenhum usuário cadastrado.\n")
+                return False
+
+            print(f"{'#':<5} {'Usuário':<20} {'Tipo':<15} {'ID':<10}")
+            print("-" * 50)
+
+            for idx, user in enumerate(users, 1):
+                user_type = "Administrador" if user.is_admin else "Usuário"
+                print(f"{idx:<5} {user.username:<20} {user_type:<15} {user.id:<10}")
+
+            print()
+
+            # Solicitar seleção do usuário
+            while True:
+                try:
+                    choice = input(f"Escolha o usuário a deletar (1-{len(users)}) ou 0 para cancelar: ").strip()
+                    choice_num = int(choice)
+
+                    if choice_num == 0:
+                        print("\n❌ Operação cancelada.\n")
+                        return False
+
+                    if 1 <= choice_num <= len(users):
+                        selected_user = users[choice_num - 1]
+                        break
+                    else:
+                        print(f"❌ Por favor, escolha um número entre 1 e {len(users)}.")
+                except ValueError:
+                    print("❌ Por favor, digite um número válido.")
+
+            # Verificar se é o último administrador
+            if selected_user.is_admin:
+                admin_count = User.query.filter_by(is_admin=True).count()
+                if admin_count <= 1:
+                    print("\n❌ Não é possível deletar o único administrador do sistema.\n")
+                    return False
+
+            # Confirmar deleção
+            user_type = "administrador" if selected_user.is_admin else "usuário"
+            print(f"\n⚠️  ATENÇÃO: Você está prestes a deletar o {user_type} '{selected_user.username}'.")
+            print("Esta ação NÃO pode ser desfeita e todas as tarefas associadas a este usuário também serão deletadas.\n")
+
+            confirmation = input("Digite 'DELETAR' para confirmar: ").strip()
+
+            if confirmation != 'DELETAR':
+                print("\n❌ Operação cancelada (confirmação incorreta).\n")
+                return False
+
+            # Deletar usuário
+            username = selected_user.username
+            db.session.delete(selected_user)
+            db.session.commit()
+
+            print(f"\n✅ Usuário '{username}' deletado com sucesso!\n")
+            return True
+
+    except Exception as e:
+        print(f"\n❌ Erro ao deletar usuário: {e}\n")
+        db.session.rollback()
+        return False
+
 def create_admin():
     """Cria um novo usuário administrador"""
     print("\n=== Criar Novo Administrador ===\n")
@@ -190,7 +262,8 @@ def show_menu():
     print("2. Listar administradores")
     print("3. Listar todos os usuários")
     print("4. Alterar senha de usuário")
-    print("5. Sair")
+    print("5. Deletar usuário")
+    print("6. Sair")
     print("\n" + "-"*50)
 
 def main():
@@ -199,7 +272,7 @@ def main():
         show_menu()
 
         try:
-            choice = input("\nEscolha uma opção (1-5): ").strip()
+            choice = input("\nEscolha uma opção (1-6): ").strip()
 
             if choice == '1':
                 create_admin()
@@ -210,10 +283,12 @@ def main():
             elif choice == '4':
                 change_password()
             elif choice == '5':
+                delete_user()
+            elif choice == '6':
                 print("\n👋 Até logo!\n")
                 sys.exit(0)
             else:
-                print("\n❌ Opção inválida. Por favor, escolha 1, 2, 3, 4 ou 5.\n")
+                print("\n❌ Opção inválida. Por favor, escolha 1, 2, 3, 4, 5 ou 6.\n")
 
         except KeyboardInterrupt:
             print("\n\n👋 Operação cancelada. Até logo!\n")
