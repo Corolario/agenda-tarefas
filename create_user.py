@@ -3,7 +3,6 @@
 Script para gerenciar usuários do sistema de agenda.
 Funcionalidades:
 - Criar novos administradores
-- Listar administradores
 - Listar todos os usuários
 - Alterar senha de usuários (administradores e normais)
 - Deletar usuários (administradores e normais)
@@ -15,30 +14,6 @@ from app import app, db
 from models import User
 import getpass
 import sys
-
-def list_admins():
-    """Lista todos os usuários administradores"""
-    print("\n=== Usuários Administradores ===\n")
-
-    try:
-        with app.app_context():
-            admins = User.query.filter_by(is_admin=True).order_by(User.username).all()
-
-            if not admins:
-                print("Nenhum administrador cadastrado.\n")
-                return
-
-            print(f"{'Usuário':<20} {'Criado em':<25} {'ID':<10}")
-            print("-" * 55)
-
-            for admin in admins:
-                created = admin.created_at.strftime('%d/%m/%Y às %H:%M')
-                print(f"{admin.username:<20} {created:<25} {admin.id:<10}")
-
-            print(f"\nTotal: {len(admins)} administrador(es)\n")
-
-    except Exception as e:
-        print(f"\n❌ Erro ao listar administradores: {e}\n")
 
 def list_all_users():
     """Lista todos os usuários do sistema (administradores e normais)"""
@@ -182,14 +157,24 @@ def delete_user():
                     print("\n❌ Não é possível deletar o único administrador do sistema.\n")
                     return False
 
+            # Verificar se o usuário administra algum grupo
+            administered_groups = selected_user.administered_groups
+            if administered_groups:
+                print(f"\n❌ Não é possível deletar este usuário pois ele administra {len(administered_groups)} grupo(s):")
+                for group in administered_groups:
+                    print(f"   - {group.name}")
+                print("\nPrimeiro você precisa deletar todos os grupos que este administrador criou.")
+                print("Ou então, se preferir, transfira a administração desses grupos para outro administrador.\n")
+                return False
+
             # Confirmar deleção
             user_type = "administrador" if selected_user.is_admin else "usuário"
             print(f"\n⚠️  ATENÇÃO: Você está prestes a deletar o {user_type} '{selected_user.username}'.")
             print("Esta ação NÃO pode ser desfeita e todas as tarefas associadas a este usuário também serão deletadas.\n")
 
-            confirmation = input("Digite 'DELETAR' para confirmar: ").strip()
+            confirmation = input("Digite 'sim' para confirmar: ").strip().lower()
 
-            if confirmation != 'DELETAR':
+            if confirmation != 'sim':
                 print("\n❌ Operação cancelada (confirmação incorreta).\n")
                 return False
 
@@ -203,7 +188,10 @@ def delete_user():
 
     except Exception as e:
         print(f"\n❌ Erro ao deletar usuário: {e}\n")
-        db.session.rollback()
+        try:
+            db.session.rollback()
+        except:
+            pass
         return False
 
 def create_admin():
@@ -259,11 +247,10 @@ def show_menu():
     print("  GERENCIAMENTO DE USUÁRIOS")
     print("="*50)
     print("\n1. Criar novo administrador")
-    print("2. Listar administradores")
-    print("3. Listar todos os usuários")
-    print("4. Alterar senha de usuário")
-    print("5. Deletar usuário")
-    print("6. Sair")
+    print("2. Listar todos os usuários")
+    print("3. Alterar senha de usuário")
+    print("4. Deletar usuário")
+    print("5. Sair")
     print("\n" + "-"*50)
 
 def main():
@@ -272,23 +259,21 @@ def main():
         show_menu()
 
         try:
-            choice = input("\nEscolha uma opção (1-6): ").strip()
+            choice = input("\nEscolha uma opção (1-5): ").strip()
 
             if choice == '1':
                 create_admin()
             elif choice == '2':
-                list_admins()
-            elif choice == '3':
                 list_all_users()
-            elif choice == '4':
+            elif choice == '3':
                 change_password()
-            elif choice == '5':
+            elif choice == '4':
                 delete_user()
-            elif choice == '6':
+            elif choice == '5':
                 print("\n👋 Até logo!\n")
                 sys.exit(0)
             else:
-                print("\n❌ Opção inválida. Por favor, escolha 1, 2, 3, 4, 5 ou 6.\n")
+                print("\n❌ Opção inválida. Por favor, escolha 1, 2, 3, 4 ou 5.\n")
 
         except KeyboardInterrupt:
             print("\n\n👋 Operação cancelada. Até logo!\n")
