@@ -158,11 +158,24 @@ Conteúdo do arquivo `.env`:
 SECRET_KEY=sua-chave-secreta-muito-segura-aqui-gere-uma-aleatoria
 DATABASE_URL=sqlite:///data/tarefas.db
 FLASK_ENV=production
+
+# Configurar UID/GID para evitar permissões de root no diretório data/
+UID=1000
+GID=1000
 ```
 
 **Dica para gerar SECRET_KEY segura:**
 ```bash
 python3 -c 'import secrets; print(secrets.token_hex(32))'
+```
+
+**Dica para obter seu UID e GID:**
+```bash
+# Ver seu UID
+id -u
+
+# Ver seu GID
+id -g
 ```
 
 ### Passo 4: Criar diretório para dados
@@ -358,9 +371,27 @@ docker-compose up -d
 
 ### Permissões no diretório data/
 
+**O diretório `data/` agora é criado automaticamente com as permissões corretas do seu usuário!**
+
+A aplicação está configurada para usar as variáveis `UID` e `GID` do arquivo `.env`, evitando que os arquivos sejam criados como root.
+
+Se você já tinha o diretório `data/` com permissões de root, você pode corrigir com:
+
 ```bash
 sudo chown -R $USER:$USER data/
 chmod 755 data/
+```
+
+**Para novos deploys:**
+Apenas configure `UID` e `GID` no arquivo `.env` com os valores do seu usuário:
+```bash
+# Obter valores
+echo "UID=$(id -u)"
+echo "GID=$(id -g)"
+
+# Adicionar ao .env
+echo "UID=$(id -u)" >> .env
+echo "GID=$(id -g)" >> .env
 ```
 
 ---
