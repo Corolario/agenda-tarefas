@@ -1,5 +1,5 @@
 # Usar imagem oficial do Python
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Definir diretório de trabalho
 WORKDIR /app
@@ -15,7 +15,7 @@ COPY . .
 
 # Criar diretório para banco de dados com permissões abertas
 # As permissões serão gerenciadas pelo docker-compose.yml via user: UID:GID
-RUN mkdir -p /app/data && chmod 777 /app/data
+RUN mkdir -p /app/data
 
 # Expor porta
 EXPOSE 5000
