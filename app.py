@@ -57,7 +57,7 @@ if os.getenv('FLASK_ENV') == 'production':
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-login_manager.login_message = 'Por favor, faça login para acessar esta página.'
+login_manager.login_message = None
 login_manager.session_protection = 'strong'  # Proteção adicional de sessão
 
 @login_manager.user_loader
