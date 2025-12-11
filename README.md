@@ -158,6 +158,10 @@ Conteúdo do arquivo `.env`:
 SECRET_KEY=sua-chave-secreta-muito-segura-aqui-gere-uma-aleatoria
 DATABASE_URL=sqlite:///data/tarefas.db
 FLASK_ENV=production
+
+# Configurar UID/GID para evitar permissões de root no diretório data/
+UID=1000
+GID=1000
 ```
 
 **Dica para gerar SECRET_KEY segura:**
@@ -165,12 +169,25 @@ FLASK_ENV=production
 python3 -c 'import secrets; print(secrets.token_hex(32))'
 ```
 
+**Dica para obter seu UID e GID:**
+```bash
+# Ver seu UID
+id -u
+
+# Ver seu GID
+id -g
+```
+
 ### Passo 4: Criar diretório para dados
 
+**IMPORTANTE:** Crie o diretório `data/` ANTES de rodar o Docker para evitar que seja criado como root:
+
 ```bash
+# Criar diretório com as permissões corretas
 mkdir -p data
-chmod 755 data
 ```
+
+Isso garante que o diretório seja criado com as permissões do seu usuário. Se você não criar antes, o Docker criará automaticamente como root e o container ficará em loop de restart.
 
 ### Passo 5: Build e executar com Docker Compose
 
@@ -329,6 +346,32 @@ Acesse: http://localhost:5000
 
 ## Solução de Problemas
 
+### Container em loop de restart (problema de permissões)
+
+**Sintoma:** O container fica reiniciando continuamente e o diretório `data/` foi criado como root.
+
+**Causa:** O diretório `data/` não foi criado antes de rodar o docker-compose, então o Docker criou como root.
+
+**Solução:**
+```bash
+# 1. Parar containers
+docker-compose down
+
+# 2. Remover tudo para recomeçar do zero
+sudo rm -rf data/
+
+# 3. Criar diretório com permissões corretas
+mkdir -p data
+
+# 4. Garantir que UID/GID estão no .env (use seus valores!)
+echo "UID=$(id -u)" >> .env
+echo "GID=$(id -g)" >> .env
+
+# 5. Rebuild e iniciar
+docker-compose build
+docker-compose up -d
+```
+
 ### Container não inicia
 
 ```bash
@@ -358,10 +401,11 @@ docker-compose up -d
 
 ### Permissões no diretório data/
 
-```bash
-sudo chown -R $USER:$USER data/
-chmod 755 data/
-```
+**O diretório `data/` é criado automaticamente com as permissões corretas do seu usuário!**
+
+A aplicação está configurada para usar as variáveis `UID` e `GID` do arquivo `.env`, evitando que os arquivos sejam criados como root.
+
+**Se você está tendo problemas com permissões ou loop de restart**, veja a seção [Container em loop de restart](#container-em-loop-de-restart-problema-de-permissões) acima.
 
 ---
 

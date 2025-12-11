@@ -13,8 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar código da aplicação
 COPY . .
 
-# Criar diretório para banco de dados
-RUN mkdir -p /app/data
+# Criar diretório para banco de dados com permissões abertas
+# As permissões serão gerenciadas pelo docker-compose.yml via user: UID:GID
+RUN mkdir -p /app/data && chmod 777 /app/data
 
 # Expor porta
 EXPOSE 5000
