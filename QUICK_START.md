@@ -26,16 +26,26 @@ python3 -c 'import secrets; print(secrets.token_hex(32))'
 nano .env
 ```
 
-Colar no arquivo:
+Colar no arquivo (substitua os valores de UID e GID pelos seus):
 ```env
 SECRET_KEY=cole-a-chave-gerada-acima-aqui
 DATABASE_URL=sqlite:///data/tarefas.db
 FLASK_ENV=production
+UID=1000
+GID=1000
+```
+
+**Para obter seu UID e GID:**
+```bash
+id -u  # seu UID
+id -g  # seu GID
 ```
 
 Salvar: `Ctrl+O`, `Enter`, `Ctrl+X`
 
-### 4. Criar pasta de dados
+### 4. Criar pasta de dados (IMPORTANTE!)
+
+**Criar ANTES de rodar o Docker para evitar permissões de root:**
 
 ```bash
 mkdir -p data

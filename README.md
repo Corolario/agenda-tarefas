@@ -178,35 +178,16 @@ id -u
 id -g
 ```
 
-### Passo 3.1: Corrigir Permissões (SOLUÇÃO RÁPIDA)
-
-**Se o diretório `data/` foi criado como root e o Docker está em loop de restart**, use o script de correção:
-
-```bash
-# Executar script de correção automática
-./fix-permissions.sh
-```
-
-Este script irá:
-- ✅ Corrigir permissões do diretório `data/` se necessário
-- ✅ Criar arquivo `.env` com UID/GID corretos
-- ✅ Configurar tudo automaticamente
-
-**OU faça manualmente:**
-```bash
-# Corrigir permissões do diretório data/
-sudo chown -R $USER:$USER data/
-
-# Adicionar UID/GID ao .env
-echo "UID=$(id -u)" >> .env
-echo "GID=$(id -g)" >> .env
-```
-
 ### Passo 4: Criar diretório para dados
 
+**IMPORTANTE:** Crie o diretório `data/` ANTES de rodar o Docker para evitar que seja criado como root:
+
 ```bash
+# Criar diretório com as permissões corretas
 mkdir -p data
 ```
+
+Isso garante que o diretório seja criado com as permissões do seu usuário. Se você não criar antes, o Docker criará automaticamente como root e o container ficará em loop de restart.
 
 ### Passo 5: Build e executar com Docker Compose
 
@@ -369,32 +350,24 @@ Acesse: http://localhost:5000
 
 **Sintoma:** O container fica reiniciando continuamente e o diretório `data/` foi criado como root.
 
+**Causa:** O diretório `data/` não foi criado antes de rodar o docker-compose, então o Docker criou como root.
+
 **Solução:**
 ```bash
-# 1. Parar os containers
+# 1. Parar containers
 docker-compose down
 
-# 2. Executar script de correção
-./fix-permissions.sh
+# 2. Remover tudo para recomeçar do zero
+sudo rm -rf data/
 
-# 3. Rebuild e iniciar
-docker-compose build
-docker-compose up -d
-```
+# 3. Criar diretório com permissões corretas
+mkdir -p data
 
-**OU manualmente:**
-```bash
-# Parar containers
-docker-compose down
-
-# Corrigir permissões
-sudo chown -R $USER:$USER data/
-
-# Garantir que UID/GID estão no .env
+# 4. Garantir que UID/GID estão no .env (use seus valores!)
 echo "UID=$(id -u)" >> .env
 echo "GID=$(id -g)" >> .env
 
-# Rebuild e iniciar
+# 5. Rebuild e iniciar
 docker-compose build
 docker-compose up -d
 ```
