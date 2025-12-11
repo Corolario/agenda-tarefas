@@ -28,6 +28,9 @@ class User(UserMixin, db.Model):
     # Relacionamento com tarefas
     tarefas = db.relationship('Tarefa', backref='usuario', lazy=True, cascade='all, delete-orphan')
 
+    # Relacionamento com notas
+    notes = db.relationship('Note', backref='usuario', lazy=True, cascade='all, delete-orphan')
+
     # Relacionamento many-to-many com grupos de tarefas
     task_groups = db.relationship('TaskGroup', secondary=user_taskgroup, backref=db.backref('members', lazy='dynamic'))
 
@@ -66,6 +69,9 @@ class TaskGroup(db.Model):
     # Relacionamento com tarefas
     tarefas = db.relationship('Tarefa', backref='task_group', lazy=True, cascade='all, delete-orphan')
 
+    # Relacionamento com notas
+    notes = db.relationship('Note', backref='task_group', lazy=True, cascade='all, delete-orphan')
+
     def __repr__(self):
         return f'<TaskGroup {self.name}>'
 
@@ -82,3 +88,18 @@ class Tarefa(db.Model):
 
     def __repr__(self):
         return f'<Tarefa {self.id}: {self.data}>'
+
+
+class Note(db.Model):
+    __tablename__ = 'notes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    task_group_id = db.Column(db.Integer, db.ForeignKey('task_groups.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<Note {self.id}: {self.title}>'

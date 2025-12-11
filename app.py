@@ -6,7 +6,7 @@ from flask_talisman import Talisman
 from flask_bootstrap import Bootstrap5
 from dotenv import load_dotenv
 from functools import wraps
-from models import db, User, Tarefa, TaskGroup
+from models import db, User, Tarefa, TaskGroup, Note
 from forms import (LoginForm, CreateUserForm, TaskForm, EditTaskForm,
                    TaskGroupForm, DeleteForm, ManageMemberForm)
 from collections import defaultdict
@@ -292,6 +292,129 @@ def deletar(id):
     db.session.commit()
     flash('Tarefa deletada com sucesso!', 'success')
     return redirect(url_for('index'))
+
+
+# ============= ROTAS DE ANOTAÇÕES =============
+
+@app.route('/notas')
+@login_required
+def notas():
+    """Página de anotações com gerenciador de arquivos"""
+    # Buscar grupos do usuário
+    user_groups = current_user.task_groups
+
+    # Se o usuário não pertence a nenhum grupo, retornar vazio
+    if not user_groups:
+        return render_template('notas.html', notes=[], user_groups=user_groups,
+                             selected_group_id=None, selected_note_id=None,
+                             current_note=None)
+
+    # Buscar IDs dos grupos do usuário
+    group_ids = [group.id for group in user_groups]
+
+    # Obter filtros da query string
+    selected_group_id = request.args.get('group_id', type=int)
+    selected_note_id = request.args.get('note_id', type=int)
+
+    # Buscar todas as notas dos grupos que o usuário pertence
+    query = Note.query.filter(Note.task_group_id.in_(group_ids))
+
+    # Aplicar filtro de grupo se selecionado
+    if selected_group_id and selected_group_id in group_ids:
+        query = query.filter(Note.task_group_id == selected_group_id)
+
+    notes = query.order_by(Note.updated_at.desc()).all()
+
+    # Buscar nota selecionada
+    current_note = None
+    if selected_note_id:
+        current_note = Note.query.get(selected_note_id)
+        # Verificar se o usuário tem acesso à nota
+        if current_note and current_note.task_group_id not in group_ids:
+            current_note = None
+
+    return render_template('notas.html', notes=notes, user_groups=user_groups,
+                         selected_group_id=selected_group_id,
+                         selected_note_id=selected_note_id,
+                         current_note=current_note)
+
+
+@app.route('/notas/criar', methods=['POST'])
+@login_required
+def criar_nota():
+    """Criar nova nota"""
+    title = request.form.get('title', '').strip()
+    task_group_id = request.form.get('task_group_id', type=int)
+
+    if not title:
+        flash('O título da nota não pode estar vazio.', 'danger')
+        return redirect(url_for('notas'))
+
+    if not task_group_id:
+        flash('Você deve selecionar um grupo.', 'danger')
+        return redirect(url_for('notas'))
+
+    # Verificar se o usuário pertence ao grupo
+    task_group = TaskGroup.query.get(task_group_id)
+    if not task_group or task_group not in current_user.task_groups:
+        flash('Você não pertence a este grupo de tarefas.', 'danger')
+        return redirect(url_for('notas'))
+
+    note = Note(
+        title=title,
+        content='',
+        user_id=current_user.id,
+        task_group_id=task_group_id
+    )
+    db.session.add(note)
+    db.session.commit()
+
+    flash('Nota criada com sucesso!', 'success')
+    return redirect(url_for('notas', note_id=note.id, group_id=task_group_id))
+
+
+@app.route('/notas/<int:id>/atualizar', methods=['POST'])
+@login_required
+def atualizar_nota(id):
+    """Atualizar conteúdo da nota"""
+    note = Note.query.get_or_404(id)
+
+    # Verificar permissões
+    if note.task_group not in current_user.task_groups:
+        return {'success': False, 'message': 'Você não tem permissão para editar esta nota.'}, 403
+
+    content = request.form.get('content', '')
+    title = request.form.get('title', '').strip()
+
+    if title:
+        note.title = title
+    note.content = content
+    db.session.commit()
+
+    return {'success': True, 'message': 'Nota atualizada com sucesso!'}
+
+
+@app.route('/notas/<int:id>/deletar', methods=['POST'])
+@login_required
+def deletar_nota(id):
+    """Deletar nota"""
+    note = Note.query.get_or_404(id)
+
+    # Verificar permissões
+    task_group = note.task_group
+    if task_group not in current_user.task_groups:
+        flash('Você não tem permissão para deletar esta nota.', 'danger')
+        return redirect(url_for('notas'))
+
+    if not current_user.is_admin and note.user_id != current_user.id:
+        flash('Você não tem permissão para deletar esta nota.', 'danger')
+        return redirect(url_for('notas'))
+
+    group_id = note.task_group_id
+    db.session.delete(note)
+    db.session.commit()
+    flash('Nota deletada com sucesso!', 'success')
+    return redirect(url_for('notas', group_id=group_id))
 
 
 # ============= ROTAS DE ADMINISTRAÇÃO =============

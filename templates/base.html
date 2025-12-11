@@ -32,6 +32,30 @@
             color: #6c757d;
             font-size: 0.9rem;
         }
+
+        .nav-tabs-custom {
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 30px;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #6c757d;
+            font-weight: 500;
+            padding: 12px 24px;
+            transition: all 0.3s;
+        }
+
+        .nav-tabs-custom .nav-link:hover {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            background: none;
+        }
     </style>
 </head>
 <body>
@@ -59,6 +83,22 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs nav-tabs-custom">
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"
+                   href="{{ url_for('index') }}">
+                    Gerenciador de Tarefas
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'notas' %}active{% endif %}"
+                   href="{{ url_for('notas') }}">
+                    Anotações
+                </a>
+            </li>
+        </ul>
 
         {% block content %}{% endblock %}
     </div>
