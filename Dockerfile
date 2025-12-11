@@ -13,14 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar código da aplicação
 COPY . .
 
-# Criar usuário não-root
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Criar diretório para banco de dados e definir permissões
-RUN mkdir -p /app/data && chown -R appuser:appuser /app
-
-# Mudar para usuário não-root
-USER appuser
+# Criar diretório para banco de dados com permissões abertas
+# As permissões serão gerenciadas pelo docker-compose.yml via user: UID:GID
+RUN mkdir -p /app/data && chmod 777 /app/data
 
 # Expor porta
 EXPOSE 5000

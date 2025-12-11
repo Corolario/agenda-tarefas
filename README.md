@@ -178,11 +178,34 @@ id -u
 id -g
 ```
 
+### Passo 3.1: Corrigir Permissões (SOLUÇÃO RÁPIDA)
+
+**Se o diretório `data/` foi criado como root e o Docker está em loop de restart**, use o script de correção:
+
+```bash
+# Executar script de correção automática
+./fix-permissions.sh
+```
+
+Este script irá:
+- ✅ Corrigir permissões do diretório `data/` se necessário
+- ✅ Criar arquivo `.env` com UID/GID corretos
+- ✅ Configurar tudo automaticamente
+
+**OU faça manualmente:**
+```bash
+# Corrigir permissões do diretório data/
+sudo chown -R $USER:$USER data/
+
+# Adicionar UID/GID ao .env
+echo "UID=$(id -u)" >> .env
+echo "GID=$(id -g)" >> .env
+```
+
 ### Passo 4: Criar diretório para dados
 
 ```bash
 mkdir -p data
-chmod 755 data
 ```
 
 ### Passo 5: Build e executar com Docker Compose
@@ -342,6 +365,40 @@ Acesse: http://localhost:5000
 
 ## Solução de Problemas
 
+### Container em loop de restart (problema de permissões)
+
+**Sintoma:** O container fica reiniciando continuamente e o diretório `data/` foi criado como root.
+
+**Solução:**
+```bash
+# 1. Parar os containers
+docker-compose down
+
+# 2. Executar script de correção
+./fix-permissions.sh
+
+# 3. Rebuild e iniciar
+docker-compose build
+docker-compose up -d
+```
+
+**OU manualmente:**
+```bash
+# Parar containers
+docker-compose down
+
+# Corrigir permissões
+sudo chown -R $USER:$USER data/
+
+# Garantir que UID/GID estão no .env
+echo "UID=$(id -u)" >> .env
+echo "GID=$(id -g)" >> .env
+
+# Rebuild e iniciar
+docker-compose build
+docker-compose up -d
+```
+
 ### Container não inicia
 
 ```bash
@@ -371,28 +428,11 @@ docker-compose up -d
 
 ### Permissões no diretório data/
 
-**O diretório `data/` agora é criado automaticamente com as permissões corretas do seu usuário!**
+**O diretório `data/` é criado automaticamente com as permissões corretas do seu usuário!**
 
 A aplicação está configurada para usar as variáveis `UID` e `GID` do arquivo `.env`, evitando que os arquivos sejam criados como root.
 
-Se você já tinha o diretório `data/` com permissões de root, você pode corrigir com:
-
-```bash
-sudo chown -R $USER:$USER data/
-chmod 755 data/
-```
-
-**Para novos deploys:**
-Apenas configure `UID` e `GID` no arquivo `.env` com os valores do seu usuário:
-```bash
-# Obter valores
-echo "UID=$(id -u)"
-echo "GID=$(id -g)"
-
-# Adicionar ao .env
-echo "UID=$(id -u)" >> .env
-echo "GID=$(id -g)" >> .env
-```
+**Se você está tendo problemas com permissões ou loop de restart**, veja a seção [Container em loop de restart](#container-em-loop-de-restart-problema-de-permissões) acima.
 
 ---
 
