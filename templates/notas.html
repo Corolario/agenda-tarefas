@@ -201,7 +201,22 @@
     </div>
     {% endif %}
 
-    {% if selected_group_id %}
+    <!-- Filtro de Usuário -->
+    {% if members_list|length > 1 %}
+    <div class="d-flex align-items-center gap-2">
+        <label for="user_filter" class="form-label mb-0 text-nowrap">Usuário:</label>
+        <select id="user_filter" class="form-select form-select-sm" onchange="applyFilters()" style="min-width: 200px;">
+            <option value="">Todos os usuários</option>
+            {% for member_id, member_name in members_list %}
+            <option value="{{ member_id }}" {% if selected_user_id == member_id %}selected{% endif %}>
+                {{ member_name }}{% if member_id == current_user.id %} (Você){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+    {% if selected_user_id or selected_group_id %}
     <a href="{{ url_for('notas') }}" class="btn btn-sm btn-outline-secondary">Limpar Filtros</a>
     {% endif %}
 
@@ -427,12 +442,18 @@ function selectNote(noteId) {
 
 function applyFilters() {
     const groupSelect = document.getElementById('group_filter');
+    const userSelect = document.getElementById('user_filter');
+
     const groupId = groupSelect ? groupSelect.value : '';
+    const userId = userSelect ? userSelect.value : '';
 
     const params = new URLSearchParams();
 
     if (groupId) {
         params.append('group_id', groupId);
+    }
+    if (userId) {
+        params.append('user_id', userId);
     }
 
     const queryString = params.toString();

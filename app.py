@@ -307,7 +307,7 @@ def notas():
     if not user_groups:
         return render_template('notas.html', notes=[], user_groups=user_groups,
                              selected_group_id=None, selected_note_id=None,
-                             current_note=None)
+                             current_note=None, members_list=[])
 
     # Buscar IDs dos grupos do usuário
     group_ids = [group.id for group in user_groups]
@@ -315,6 +315,7 @@ def notas():
     # Obter filtros da query string
     selected_group_id = request.args.get('group_id', type=int)
     selected_note_id = request.args.get('note_id', type=int)
+    selected_user_id = request.args.get('user_id', type=int)
 
     # Buscar todas as notas dos grupos que o usuário pertence
     query = Note.query.filter(Note.task_group_id.in_(group_ids))
@@ -323,7 +324,26 @@ def notas():
     if selected_group_id and selected_group_id in group_ids:
         query = query.filter(Note.task_group_id == selected_group_id)
 
+    # Aplicar filtro de usuário se selecionado
+    if selected_user_id:
+        query = query.filter(Note.user_id == selected_user_id)
+
     notes = query.order_by(Note.updated_at.desc()).all()
+
+    # Buscar todos os membros dos grupos para o filtro
+    members_set = set()
+    if selected_group_id:
+        # Se um grupo está selecionado, mostrar apenas membros daquele grupo
+        selected_group = TaskGroup.query.get(selected_group_id)
+        if selected_group:
+            for member in selected_group.members.all():
+                members_set.add((member.id, member.username))
+    else:
+        # Mostrar todos os membros de todos os grupos do usuário
+        for group in user_groups:
+            for member in group.members.all():
+                members_set.add((member.id, member.username))
+    members_list = sorted(list(members_set), key=lambda x: x[1])  # Ordenar por nome
 
     # Buscar nota selecionada
     current_note = None
@@ -336,7 +356,8 @@ def notas():
     return render_template('notas.html', notes=notes, user_groups=user_groups,
                          selected_group_id=selected_group_id,
                          selected_note_id=selected_note_id,
-                         current_note=current_note)
+                         selected_user_id=selected_user_id,
+                         current_note=current_note, members_list=members_list)
 
 
 @app.route('/notas/criar', methods=['POST'])
