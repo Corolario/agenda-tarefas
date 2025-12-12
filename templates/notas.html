@@ -249,7 +249,8 @@
                class="note-editor-title"
                id="noteTitle"
                value="{{ current_note.title }}"
-               placeholder="Título da nota...">
+               placeholder="Título da nota..."
+               {% if not (current_note.user_id == current_user.id or current_user.is_admin) %}readonly{% endif %}>
 
         {% if current_note.user_id == current_user.id or current_user.is_admin %}
         <div class="mb-3">
@@ -264,19 +265,20 @@
         </div>
         {% else %}
         <div class="mb-3">
-            <small class="text-muted">Grupo: <strong>{{ current_note.task_group.name }}</strong> (somente leitura)</small>
+            <small class="text-muted">Grupo: <strong>{{ current_note.task_group.name }}</strong> • <em>Esta nota está em modo somente leitura</em></small>
         </div>
         {% endif %}
 
         <textarea class="note-editor-content"
                   id="noteContent"
-                  placeholder="Comece a escrever suas anotações...">{{ current_note.content }}</textarea>
+                  placeholder="Comece a escrever suas anotações..."
+                  {% if not (current_note.user_id == current_user.id or current_user.is_admin) %}readonly{% endif %}>{{ current_note.content }}</textarea>
 
         <div class="mt-3 d-flex gap-2">
+            {% if current_note.user_id == current_user.id or current_user.is_admin %}
             <button type="button" class="btn btn-primary" onclick="saveNote()">
                 Salvar Manualmente
             </button>
-            {% if current_note.user_id == current_user.id or current_user.is_admin %}
             <form method="POST" action="{{ url_for('deletar_nota', id=current_note.id) }}"
                   onsubmit="return confirm('Tem certeza que deseja deletar esta nota?');"
                   style="display: inline;">
@@ -316,8 +318,8 @@
 let saveTimeout;
 let isDirty = false;
 
-// Auto-save ao digitar
-{% if current_note %}
+// Auto-save ao digitar (apenas se puder editar)
+{% if current_note and (current_note.user_id == current_user.id or current_user.is_admin) %}
 document.getElementById('noteContent').addEventListener('input', function() {
     isDirty = true;
     clearTimeout(saveTimeout);

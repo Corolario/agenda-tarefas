@@ -376,12 +376,16 @@ def criar_nota():
 @app.route('/notas/<int:id>/atualizar', methods=['POST'])
 @login_required
 def atualizar_nota(id):
-    """Atualizar conteúdo da nota"""
+    """Atualizar conteúdo da nota - apenas autor ou admin"""
     note = Note.query.get_or_404(id)
 
-    # Verificar permissões
+    # Verificar se pertence ao grupo
     if note.task_group not in current_user.task_groups:
         return {'success': False, 'message': 'Você não tem permissão para editar esta nota.'}, 403
+
+    # Verificar se é autor ou admin
+    if note.user_id != current_user.id and not current_user.is_admin:
+        return {'success': False, 'message': 'Apenas o autor ou um administrador podem editar esta nota.'}, 403
 
     # Autor ou admin podem alterar o grupo
     task_group_id = request.form.get('task_group_id', type=int)
