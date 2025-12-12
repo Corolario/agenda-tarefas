@@ -251,7 +251,7 @@
                value="{{ current_note.title }}"
                placeholder="Título da nota...">
 
-        {% if current_note.user_id == current_user.id %}
+        {% if current_note.user_id == current_user.id or current_user.is_admin %}
         <div class="mb-3">
             <label for="noteGroup" class="form-label text-muted" style="font-size: 0.9rem;">Grupo:</label>
             <select class="form-select form-select-sm" id="noteGroup" style="max-width: 300px;">
@@ -276,7 +276,7 @@
             <button type="button" class="btn btn-primary" onclick="saveNote()">
                 Salvar Manualmente
             </button>
-            {% if current_note.user_id == current_user.id %}
+            {% if current_note.user_id == current_user.id or current_user.is_admin %}
             <form method="POST" action="{{ url_for('deletar_nota', id=current_note.id) }}"
                   onsubmit="return confirm('Tem certeza que deseja deletar esta nota?');"
                   style="display: inline;">
