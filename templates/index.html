@@ -58,7 +58,7 @@
     {% endif %}
 
     <!-- Filtro de Usuário -->
-    {% if members_list %}
+    {% if members_list|length > 1 %}
     <div class="d-flex align-items-center gap-2">
         <label for="user_filter" class="form-label mb-0 text-nowrap">Usuário:</label>
         <select id="user_filter" class="form-select form-select-sm" onchange="applyFilters()" style="min-width: 200px;">
