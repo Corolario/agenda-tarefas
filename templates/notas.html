@@ -18,7 +18,7 @@
     }
 
     .notes-sidebar {
-        width: 300px;
+        width: 350px;
         border: 1px solid #dee2e6;
         border-radius: 8px;
         overflow-y: auto;
@@ -57,8 +57,28 @@
     }
 
     .note-item-meta {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         opacity: 0.7;
+        margin-top: 4px;
+    }
+
+    .note-item-info {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        margin-top: 2px;
+    }
+
+    .note-item-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        margin-right: 4px;
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .note-item.active .note-item-badge {
+        background: rgba(255, 255, 255, 0.3);
     }
 
     .note-editor-title {
@@ -207,6 +227,10 @@
                 <div class="note-item-meta">
                     {{ note.updated_at.strftime('%d/%m/%Y %H:%M') }}
                 </div>
+                <div class="note-item-info">
+                    <span class="note-item-badge">👤 {% if note.user_id == current_user.id %}Você{% else %}{{ note.usuario.username }}{% endif %}</span>
+                    <span class="note-item-badge">📁 {{ note.task_group.name }}</span>
+                </div>
             </div>
             {% endfor %}
         {% else %}
@@ -227,6 +251,23 @@
                value="{{ current_note.title }}"
                placeholder="Título da nota...">
 
+        {% if current_note.user_id == current_user.id %}
+        <div class="mb-3">
+            <label for="noteGroup" class="form-label text-muted" style="font-size: 0.9rem;">Grupo:</label>
+            <select class="form-select form-select-sm" id="noteGroup" style="max-width: 300px;">
+                {% for group in user_groups %}
+                <option value="{{ group.id }}" {% if current_note.task_group_id == group.id %}selected{% endif %}>
+                    {{ group.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% else %}
+        <div class="mb-3">
+            <small class="text-muted">Grupo: <strong>{{ current_note.task_group.name }}</strong> (somente leitura)</small>
+        </div>
+        {% endif %}
+
         <textarea class="note-editor-content"
                   id="noteContent"
                   placeholder="Comece a escrever suas anotações...">{{ current_note.content }}</textarea>
@@ -235,12 +276,14 @@
             <button type="button" class="btn btn-primary" onclick="saveNote()">
                 Salvar Manualmente
             </button>
+            {% if current_note.user_id == current_user.id %}
             <form method="POST" action="{{ url_for('deletar_nota', id=current_note.id) }}"
                   onsubmit="return confirm('Tem certeza que deseja deletar esta nota?');"
                   style="display: inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger">Deletar</button>
             </form>
+            {% endif %}
         </div>
 
         <input type="hidden" id="currentNoteId" value="{{ current_note.id }}">
@@ -294,6 +337,16 @@ document.getElementById('noteTitle').addEventListener('input', function() {
         saveNote();
     }, 1500);
 });
+
+// Auto-save ao mudar o grupo (se o campo existir)
+const noteGroupSelect = document.getElementById('noteGroup');
+if (noteGroupSelect) {
+    noteGroupSelect.addEventListener('change', function() {
+        isDirty = true;
+        showSaveIndicator('saving');
+        saveNote();
+    });
+}
 {% endif %}
 
 function showSaveIndicator(state) {
@@ -315,15 +368,22 @@ function saveNote() {
     const content = document.getElementById('noteContent').value;
     const title = document.getElementById('noteTitle').value;
     const csrfToken = document.getElementById('csrfToken').value;
+    const noteGroupSelect = document.getElementById('noteGroup');
+    const groupId = noteGroupSelect ? noteGroupSelect.value : '';
 
     if (!isDirty) return;
+
+    let body = `content=${encodeURIComponent(content)}&title=${encodeURIComponent(title)}&csrf_token=${csrfToken}`;
+    if (groupId) {
+        body += `&task_group_id=${groupId}`;
+    }
 
     fetch(`/notas/${noteId}/atualizar`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `content=${encodeURIComponent(content)}&title=${encodeURIComponent(title)}&csrf_token=${csrfToken}`
+        body: body
     })
     .then(response => response.json())
     .then(data => {
@@ -335,6 +395,14 @@ function saveNote() {
             const activeItem = document.querySelector('.note-item.active .note-item-title');
             if (activeItem) {
                 activeItem.textContent = title;
+            }
+
+            // Atualizar grupo na sidebar se mudou
+            if (groupId && data.group_name) {
+                const activeGroupBadge = document.querySelector('.note-item.active .note-item-info span:nth-child(2)');
+                if (activeGroupBadge) {
+                    activeGroupBadge.textContent = '📁 ' + data.group_name;
+                }
             }
         }
     })

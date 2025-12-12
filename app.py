@@ -383,6 +383,14 @@ def atualizar_nota(id):
     if note.task_group not in current_user.task_groups:
         return {'success': False, 'message': 'Você não tem permissão para editar esta nota.'}, 403
 
+    # Apenas o criador pode alterar o grupo
+    task_group_id = request.form.get('task_group_id', type=int)
+    if task_group_id and note.user_id == current_user.id:
+        # Verificar se o usuário pertence ao novo grupo
+        new_group = TaskGroup.query.get(task_group_id)
+        if new_group and new_group in current_user.task_groups:
+            note.task_group_id = task_group_id
+
     content = request.form.get('content', '')
     title = request.form.get('title', '').strip()
 
@@ -391,22 +399,26 @@ def atualizar_nota(id):
     note.content = content
     db.session.commit()
 
-    return {'success': True, 'message': 'Nota atualizada com sucesso!'}
+    return {
+        'success': True,
+        'message': 'Nota atualizada com sucesso!',
+        'group_name': note.task_group.name
+    }
 
 
 @app.route('/notas/<int:id>/deletar', methods=['POST'])
 @login_required
 def deletar_nota(id):
-    """Deletar nota"""
+    """Deletar nota - apenas o criador pode deletar"""
     note = Note.query.get_or_404(id)
 
-    # Verificar permissões
-    task_group = note.task_group
-    if task_group not in current_user.task_groups:
-        flash('Você não tem permissão para deletar esta nota.', 'danger')
+    # Verificar permissões - apenas o criador pode deletar
+    if note.user_id != current_user.id:
+        flash('Apenas o criador da nota pode deletá-la.', 'danger')
         return redirect(url_for('notas'))
 
-    if not current_user.is_admin and note.user_id != current_user.id:
+    task_group = note.task_group
+    if task_group not in current_user.task_groups:
         flash('Você não tem permissão para deletar esta nota.', 'danger')
         return redirect(url_for('notas'))
 
