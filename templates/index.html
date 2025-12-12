@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Minhas Tarefas{% endblock %}
+{% block title %}Compromissos{% endblock %}
 
 {% block header_buttons %}
 {% if current_user.is_admin %}
@@ -9,12 +9,12 @@
 {% endblock %}
 
 {% block content %}
-<!-- Modal Nova Tarefa -->
+<!-- Modal Novo Compromisso -->
 <div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="taskModalLabel">Nova Tarefa</h5>
+                <h5 class="modal-title" id="taskModalLabel">Novo Compromisso</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -30,7 +30,7 @@
                     </div>
                     <div class="mb-3">
                         {{ form.descricao.label(class="form-label") }}
-                        {{ form.descricao(class="form-control", rows="3", placeholder="Digite a tarefa...") }}
+                        {{ form.descricao(class="form-control", rows="3", placeholder="Digite a fa...") }}
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Adicionar Tarefa</button>
                 </form>
@@ -58,7 +58,7 @@
     {% endif %}
 
     <!-- Filtro de Usuário -->
-    {% if members_list %}
+    {% if members_list|length > 1 %}
     <div class="d-flex align-items-center gap-2">
         <label for="user_filter" class="form-label mb-0 text-nowrap">Usuário:</label>
         <select id="user_filter" class="form-select form-select-sm" onchange="applyFilters()" style="min-width: 200px;">

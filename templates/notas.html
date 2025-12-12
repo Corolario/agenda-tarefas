@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+
+{% block title %}Anotações{% endblock %}
+
+{% block header_buttons %}
+{% if current_user.is_admin %}
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">Administração</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+    .notes-container {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 300px);
+        min-height: 500px;
+    }
+
+    .notes-sidebar {
+        width: 310px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow-y: auto;
+        background: #f8f9fa;
+    }
+
+    .notes-editor {
+        flex: 1;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        overflow-y: auto;
+        background: white;
+    }
+
+    .note-item {
+        padding: 12px 15px;
+        border-bottom: 1px solid #dee2e6;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .note-item:hover {
+        background: #e9ecef;
+    }
+
+    .note-item.active {
+        background: #007bff;
+        color: white;
+    }
+
+    .note-item-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+        word-wrap: break-word;
+    }
+
+    .note-item-meta {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-top: 4px;
+    }
+
+    .note-item-info {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        margin-top: 2px;
+    }
+
+    .note-item-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        margin-right: 4px;
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .note-item.active .note-item-badge {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .note-editor-title {
+        width: 100%;
+        border: none;
+        border-bottom: 2px solid #dee2e6;
+        font-size: 1.5rem;
+        font-weight: 500;
+        padding: 10px 0;
+        margin-bottom: 20px;
+        outline: none;
+    }
+
+    .note-editor-title:focus {
+        border-bottom-color: #007bff;
+    }
+
+    .note-editor-content {
+        width: 100%;
+        border: none;
+        min-height: 300px;
+        font-size: 1rem;
+        line-height: 1.6;
+        resize: vertical;
+        outline: none;
+        font-family: inherit;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 20px;
+    }
+
+    .sidebar-header {
+        padding: 15px;
+        background: white;
+        border-bottom: 1px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .save-indicator {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        display: none;
+    }
+
+    .save-indicator.saving {
+        background: #fff3cd;
+        color: #856404;
+        display: block;
+    }
+
+    .save-indicator.saved {
+        background: #d4edda;
+        color: #155724;
+        display: block;
+    }
+</style>
+
+<!-- Modal Nova Nota -->
+<div class="modal fade" id="noteModal" tabindex="-1" aria-labelledby="noteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="noteModalLabel">Nova Nota</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('criar_nota') }}" id="createNoteForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Título da Nota</label>
+                        <input type="text" class="form-control" id="title" name="title" required placeholder="Digite o título...">
+                    </div>
+                    <div class="mb-3">
+                        <label for="task_group_id" class="form-label">Grupo</label>
+                        <select class="form-select" id="task_group_id" name="task_group_id" required>
+                            <option value="">--- Selecione um grupo ---</option>
+                            {% for group in user_groups %}
+                            <option value="{{ group.id }}" {% if selected_group_id == group.id %}selected{% endif %}>
+                                {{ group.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Criar Nota</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros e Botão Nova Nota -->
+{% if user_groups %}
+<div class="d-flex flex-wrap gap-2 align-items-center mb-4 p-3 bg-light rounded">
+    <!-- Filtro de Grupo -->
+    {% if user_groups|length > 1 %}
+    <div class="d-flex align-items-center gap-2">
+        <label for="group_filter" class="form-label mb-0 text-nowrap">Grupo:</label>
+        <select id="group_filter" class="form-select form-select-sm" onchange="applyFilters()" style="min-width: 200px;">
+            <option value="">Todos os grupos</option>
+            {% for group in user_groups %}
+            <option value="{{ group.id }}" {% if selected_group_id == group.id %}selected{% endif %}>
+                {{ group.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+    <!-- Filtro de Usuário -->
+    {% if members_list|length > 1 %}
+    <div class="d-flex align-items-center gap-2">
+        <label for="user_filter" class="form-label mb-0 text-nowrap">Usuário:</label>
+        <select id="user_filter" class="form-select form-select-sm" onchange="applyFilters()" style="min-width: 200px;">
+            <option value="">Todos os usuários</option>
+            {% for member_id, member_name in members_list %}
+            <option value="{{ member_id }}" {% if selected_user_id == member_id %}selected{% endif %}>
+                {{ member_name }}{% if member_id == current_user.id %} (Você){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+    {% if selected_user_id or selected_group_id %}
+    <a href="{{ url_for('notas') }}" class="btn btn-sm btn-outline-secondary">Limpar Filtros</a>
+    {% endif %}
+
+    <button type="button" class="btn btn-success btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#noteModal">
+        + Nova Nota
+    </button>
+</div>
+{% endif %}
+
+<!-- Container Principal -->
+{% if user_groups %}
+<div class="notes-container">
+    <!-- Sidebar com lista de notas -->
+    <div class="notes-sidebar">
+        <div class="sidebar-header">
+            <h6 class="mb-0">Minhas Notas</h6>
+        </div>
+        {% if notes %}
+            {% for note in notes %}
+            <div class="note-item {% if selected_note_id == note.id %}active{% endif %}"
+                 onclick="selectNote({{ note.id }})">
+                <div class="note-item-title">{{ note.title }}</div>
+                <div class="note-item-meta">
+                    {{ note.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                </div>
+                <div class="note-item-info">
+                    <span class="note-item-badge">👤 {% if note.user_id == current_user.id %}Você{% else %}{{ note.usuario.username }}{% endif %}</span>
+                    <span class="note-item-badge">📁 {{ note.task_group.name }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="p-3 text-center text-muted">
+            <p>Nenhuma nota encontrada</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Editor de notas -->
+    <div class="notes-editor">
+        <div class="save-indicator" id="saveIndicator"></div>
+
+        {% if current_note %}
+        <input type="text"
+               class="note-editor-title"
+               id="noteTitle"
+               value="{{ current_note.title }}"
+               placeholder="Título da nota..."
+               {% if not (current_note.user_id == current_user.id or current_user.is_admin) %}readonly{% endif %}>
+
+        {% if current_note.user_id == current_user.id or current_user.is_admin %}
+        <div class="mb-3">
+            <label for="noteGroup" class="form-label text-muted" style="font-size: 0.9rem;">Grupo:</label>
+            <select class="form-select form-select-sm" id="noteGroup" style="max-width: 300px;">
+                {% for group in user_groups %}
+                <option value="{{ group.id }}" {% if current_note.task_group_id == group.id %}selected{% endif %}>
+                    {{ group.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% else %}
+        <div class="mb-3">
+            <small class="text-muted">Grupo: <strong>{{ current_note.task_group.name }}</strong> • <em>Esta nota está em modo somente leitura</em></small>
+        </div>
+        {% endif %}
+
+        <textarea class="note-editor-content"
+                  id="noteContent"
+                  placeholder="Comece a escrever suas anotações..."
+                  {% if not (current_note.user_id == current_user.id or current_user.is_admin) %}readonly{% endif %}>{{ current_note.content }}</textarea>
+
+        <div class="mt-3 d-flex gap-2">
+            {% if current_note.user_id == current_user.id or current_user.is_admin %}
+            <button type="button" class="btn btn-primary" onclick="saveNote()">
+                Salvar Manualmente
+            </button>
+            <form method="POST" action="{{ url_for('deletar_nota', id=current_note.id) }}"
+                  onsubmit="return confirm('Tem certeza que deseja deletar esta nota?');"
+                  style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger">Deletar</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <input type="hidden" id="currentNoteId" value="{{ current_note.id }}">
+        <input type="hidden" id="csrfToken" value="{{ csrf_token() }}">
+        {% else %}
+        <div class="empty-state">
+            <div>📝</div>
+            <h5>Selecione uma nota</h5>
+            <p>Escolha uma nota da lista ou crie uma nova</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+    <h5>Você não pertence a nenhum grupo</h5>
+    <p>
+        {% if current_user.is_admin %}
+        Crie um grupo na área de <a href="{{ url_for('admin_dashboard') }}">Administração</a>.
+        {% else %}
+        Entre em contato com um administrador para ser adicionado a um grupo.
+        {% endif %}
+    </p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+let saveTimeout;
+let isDirty = false;
+
+// Auto-save ao digitar (apenas se puder editar)
+{% if current_note and (current_note.user_id == current_user.id or current_user.is_admin) %}
+document.getElementById('noteContent').addEventListener('input', function() {
+    isDirty = true;
+    clearTimeout(saveTimeout);
+    showSaveIndicator('saving');
+
+    saveTimeout = setTimeout(function() {
+        saveNote();
+    }, 1500); // Salva 1.5 segundos após parar de digitar
+});
+
+document.getElementById('noteTitle').addEventListener('input', function() {
+    isDirty = true;
+    clearTimeout(saveTimeout);
+    showSaveIndicator('saving');
+
+    saveTimeout = setTimeout(function() {
+        saveNote();
+    }, 1500);
+});
+
+// Auto-save ao mudar o grupo (se o campo existir)
+const noteGroupSelect = document.getElementById('noteGroup');
+if (noteGroupSelect) {
+    noteGroupSelect.addEventListener('change', function() {
+        isDirty = true;
+        showSaveIndicator('saving');
+        saveNote();
+    });
+}
+{% endif %}
+
+function showSaveIndicator(state) {
+    const indicator = document.getElementById('saveIndicator');
+    indicator.className = 'save-indicator ' + state;
+
+    if (state === 'saving') {
+        indicator.textContent = 'Salvando...';
+    } else if (state === 'saved') {
+        indicator.textContent = '✓ Salvo';
+        setTimeout(() => {
+            indicator.className = 'save-indicator';
+        }, 2000);
+    }
+}
+
+function saveNote() {
+    const noteId = document.getElementById('currentNoteId').value;
+    const content = document.getElementById('noteContent').value;
+    const title = document.getElementById('noteTitle').value;
+    const csrfToken = document.getElementById('csrfToken').value;
+    const noteGroupSelect = document.getElementById('noteGroup');
+    const groupId = noteGroupSelect ? noteGroupSelect.value : '';
+
+    if (!isDirty) return;
+
+    let body = `content=${encodeURIComponent(content)}&title=${encodeURIComponent(title)}&csrf_token=${csrfToken}`;
+    if (groupId) {
+        body += `&task_group_id=${groupId}`;
+    }
+
+    fetch(`/notas/${noteId}/atualizar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: body
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSaveIndicator('saved');
+            isDirty = false;
+
+            // Atualizar título na sidebar
+            const activeItem = document.querySelector('.note-item.active .note-item-title');
+            if (activeItem) {
+                activeItem.textContent = title;
+            }
+
+            // Atualizar grupo na sidebar se mudou
+            if (groupId && data.group_name) {
+                const activeGroupBadge = document.querySelector('.note-item.active .note-item-info span:nth-child(2)');
+                if (activeGroupBadge) {
+                    activeGroupBadge.textContent = '📁 ' + data.group_name;
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao salvar:', error);
+    });
+}
+
+function selectNote(noteId) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('note_id', noteId);
+
+    const groupId = document.getElementById('group_filter');
+    if (groupId && groupId.value) {
+        params.set('group_id', groupId.value);
+    }
+
+    window.location.href = '/notas?' + params.toString();
+}
+
+function applyFilters() {
+    const groupSelect = document.getElementById('group_filter');
+    const userSelect = document.getElementById('user_filter');
+
+    const groupId = groupSelect ? groupSelect.value : '';
+    const userId = userSelect ? userSelect.value : '';
+
+    const params = new URLSearchParams();
+
+    if (groupId) {
+        params.append('group_id', groupId);
+    }
+    if (userId) {
+        params.append('user_id', userId);
+    }
+
+    const queryString = params.toString();
+    window.location.href = queryString ? '/notas?' + queryString : '/notas';
+}
+
+// Avisar sobre mudanças não salvas ao sair
+window.addEventListener('beforeunload', function(e) {
+    if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+    }
+});
+</script>
+{% endblock %}
