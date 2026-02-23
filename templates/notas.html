@@ -148,6 +148,126 @@
         color: #155724;
         display: block;
     }
+
+    /* Botão voltar — oculto no desktop */
+    .mobile-back-btn {
+        display: none;
+    }
+
+    /* Min-width dos filtros no desktop */
+    .filter-bar .form-select-sm {
+        min-width: 200px;
+    }
+
+    /* ========== MOBILE: < 768px ========== */
+    @media (max-width: 767.98px) {
+
+        /* --- Toggle: lista OU editor, nunca ambos --- */
+        .notes-container:not(.note-selected) .notes-editor {
+            display: none;
+        }
+        .notes-container.note-selected .notes-sidebar {
+            display: none;
+        }
+
+        /* --- Botão voltar visível no mobile --- */
+        .mobile-back-btn {
+            display: inline-block;
+        }
+
+        /* --- Container principal --- */
+        .notes-container {
+            flex-direction: column;
+            height: auto;
+            min-height: auto;
+            gap: 0;
+        }
+
+        /* --- Sidebar em tela cheia --- */
+        .notes-sidebar {
+            width: 100% !important;
+            max-height: calc(100vh - 250px);
+            border-radius: 8px;
+        }
+
+        /* --- Editor em tela cheia --- */
+        .notes-editor {
+            padding: 15px;
+            border-radius: 8px;
+            min-height: calc(100vh - 280px);
+        }
+
+        /* --- Título menor --- */
+        .note-editor-title {
+            font-size: 1.2rem;
+            padding: 8px 0;
+            margin-bottom: 15px;
+        }
+
+        /* --- Textarea menor --- */
+        .note-editor-content {
+            min-height: 200px;
+        }
+
+        /* --- Save indicator: posição estática no mobile --- */
+        .save-indicator {
+            position: static;
+            display: none;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .save-indicator.saving,
+        .save-indicator.saved {
+            display: block;
+        }
+
+        /* --- Empty state compacto --- */
+        .empty-state {
+            padding: 30px 15px;
+        }
+        .empty-state i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* --- Filtros: layout vertical --- */
+        .filter-bar {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        .filter-bar .d-flex.align-items-center.gap-2 {
+            width: 100%;
+        }
+        .filter-bar .form-select-sm {
+            min-width: 0;
+            width: 100%;
+        }
+        .filter-bar .btn-success {
+            width: 100%;
+        }
+
+        /* --- Touch targets maiores --- */
+        .note-item {
+            padding: 14px 12px;
+        }
+
+        /* --- Botões de ação empilhados --- */
+        .notes-editor .mt-3.d-flex.gap-2 {
+            flex-direction: column;
+        }
+        .notes-editor .mt-3.d-flex.gap-2 .btn,
+        .notes-editor .mt-3.d-flex.gap-2 form {
+            width: 100%;
+        }
+        .notes-editor .mt-3.d-flex.gap-2 form .btn {
+            width: 100%;
+        }
+
+        /* --- Seletor de grupo no editor: largura total --- */
+        .notes-editor .form-select-sm {
+            max-width: 100% !important;
+        }
+    }
 </style>
 
 <!-- Modal Nova Nota -->
@@ -185,12 +305,12 @@
 
 <!-- Filtros e Botão Nova Nota -->
 {% if user_groups %}
-<div class="d-flex flex-wrap gap-2 align-items-center mb-4 p-3 bg-light rounded">
+<div class="filter-bar d-flex flex-wrap gap-2 align-items-center mb-4 p-3 bg-light rounded">
     <!-- Filtro de Grupo -->
     {% if user_groups|length > 1 %}
     <div class="d-flex align-items-center gap-2">
         <label for="group_filter" class="form-label mb-0 text-nowrap">Grupo:</label>
-        <select id="group_filter" class="form-select form-select-sm" onchange="applyFilters()" style="min-width: 200px;">
+        <select id="group_filter" class="form-select form-select-sm" onchange="applyFilters()">
             <option value="">Todos os grupos</option>
             {% for group in user_groups %}
             <option value="{{ group.id }}" {% if selected_group_id == group.id %}selected{% endif %}>
@@ -205,7 +325,7 @@
     {% if members_list|length > 1 %}
     <div class="d-flex align-items-center gap-2">
         <label for="user_filter" class="form-label mb-0 text-nowrap">Usuário:</label>
-        <select id="user_filter" class="form-select form-select-sm" onchange="applyFilters()" style="min-width: 200px;">
+        <select id="user_filter" class="form-select form-select-sm" onchange="applyFilters()">
             <option value="">Todos os usuários</option>
             {% for member_id, member_name in members_list %}
             <option value="{{ member_id }}" {% if selected_user_id == member_id %}selected{% endif %}>
@@ -228,7 +348,7 @@
 
 <!-- Container Principal -->
 {% if user_groups %}
-<div class="notes-container">
+<div class="notes-container {% if current_note %}note-selected{% endif %}">
     <!-- Sidebar com lista de notas -->
     <div class="notes-sidebar">
         <div class="sidebar-header">
@@ -260,6 +380,11 @@
         <div class="save-indicator" id="saveIndicator"></div>
 
         {% if current_note %}
+        <a href="javascript:void(0)" onclick="goBackToList()"
+           class="btn btn-outline-secondary btn-sm mb-3 mobile-back-btn">
+            &#8592; Voltar para lista
+        </a>
+
         <input type="text"
                class="note-editor-title"
                id="noteTitle"
@@ -438,6 +563,13 @@ function selectNote(noteId) {
     }
 
     window.location.href = '/notas?' + params.toString();
+}
+
+function goBackToList() {
+    const params = new URLSearchParams(window.location.search);
+    params.delete('note_id');
+    const queryString = params.toString();
+    window.location.href = queryString ? '/notas?' + queryString : '/notas';
 }
 
 function applyFilters() {
